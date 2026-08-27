@@ -13,8 +13,8 @@ Accepted:
 - [0004: Public functions and sessions](0004-public-api.md)
 - [0005: GAP and Wolfram Language values](0005-value-conversion.md)
 - [0006: Errors and time limits](0006-errors-and-time-limits.md)
+- [0007: Supported versions and systems](0007-supported-versions-and-systems.md)
 
 Next:
 
-- supported versions and systems
 - process protocol and printed output

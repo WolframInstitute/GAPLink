@@ -8,7 +8,7 @@ Notable changes are listed here.
 
 - Added the initial paclet, development commands, and CI.
 - Added decisions for project scope, GAP installation, how GAP runs, the first public API,
-  value conversion, and error handling.
+  value conversion, error handling, and supported systems.
 
 ### Changed
 
