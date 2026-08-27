@@ -17,6 +17,7 @@ protocolFailure[reason_String] := Failure[
     "GAPProtocolError",
     <|
         "MessageTemplate" -> "The GAP protocol data is not valid.",
+        "MessageParameters" -> <||>,
         "Reason" -> reason
     |>
 ]
@@ -25,6 +26,7 @@ unsupportedValue[value_] := Failure[
     "GAPUnsupportedValue",
     <|
         "MessageTemplate" -> "The value cannot be sent to GAP.",
+        "MessageParameters" -> <||>,
         "Type" -> ToString[Head[value], InputForm]
     |>
 ]

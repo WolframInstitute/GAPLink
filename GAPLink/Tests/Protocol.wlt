@@ -106,6 +106,16 @@ VerificationTest[
 
 VerificationTest[
     AllTrue[
+        {encodeValue[Sin[x]], decodeValue[""]},
+        StringQ[#["MessageTemplate"]] &&
+            AssociationQ[#["MessageParameters"]] &
+    ],
+    True,
+    TestID -> "Failures-Have-Messages"
+]
+
+VerificationTest[
+    AllTrue[
         {
             "",
             "i01:1",
