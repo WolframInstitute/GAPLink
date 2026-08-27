@@ -7,6 +7,8 @@ It does not depend on those projects.
 Wolfram Language projects -> GAPLink -> GAP
 ```
 
+The [private process protocol](protocol.md) defines the messages exchanged with GAP.
+
 ## Rules
 
 - Loading GAPLink must not start or install GAP.
