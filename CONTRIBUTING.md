@@ -66,7 +66,8 @@ entitlement = CreateLicenseEntitlement[
 entitlement["EntitlementID"]
 ```
 
-This may use Service Credits. Add the entitlement ID to GitHub:
+CI runs its full check in one kernel, so a kernel limit of `1` is enough. This may use
+Service Credits. Add the entitlement ID to GitHub:
 
 ```bash
 gh secret set WOLFRAMSCRIPT_ENTITLEMENTID --repo WolframInstitute/GAPLink

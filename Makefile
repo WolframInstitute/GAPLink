@@ -9,12 +9,13 @@ help:
 		test   'GAPLink/Tests/*.wlt' \
 		build  '.paclet archive into build/' \
 		verify 'load the archive in a fresh kernel' \
-		all    'check, test, build, and verify' \
+		all    'full check in one kernel' \
 		lint   'CodeInspector on FILES="..."' \
 		hooks  'enable the repository Git hooks' \
 		clean  'remove generated build output'
 
-all: check test build verify
+all:
+	$(WOLFRAMSCRIPT) -file scripts/all.wls
 
 check:
 	$(WOLFRAMSCRIPT) -file scripts/check.wls

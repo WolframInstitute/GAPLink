@@ -55,21 +55,16 @@ jobs:
       - name: Check out repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
-      - name: Verify Wolfram Engine license
-        uses: ./.github/actions/wolfram-license
+      - name: Check Wolfram Engine entitlement
+        run: |
+          if [ -z "${WOLFRAMSCRIPT_ENTITLEMENTID:-}" ]; then
+            echo "::error title=Missing Wolfram license::Add WOLFRAMSCRIPT_ENTITLEMENTID as a repository secret; see CONTRIBUTING.md."
+            exit 1
+          fi
 
-      - name: Check paclet
-        run: wolframscript -file scripts/check.wls
-
-      - name: Run tests
-        run: wolframscript -file scripts/test.wls
-
-      - name: Build paclet
+      - name: Check, test, build, and verify
         id: build
-        run: wolframscript -file scripts/build.wls
-
-      - name: Verify built archive in a fresh kernel
-        run: wolframscript -file scripts/verify.wls
+        run: wolframscript -file scripts/all.wls
 
       - name: Upload verified paclet
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
