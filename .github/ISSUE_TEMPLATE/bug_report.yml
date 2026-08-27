@@ -1,0 +1,53 @@
+name: Bug report
+description: Report reproducible incorrect behavior in GAPLink.
+title: "bug: "
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: Do not report security vulnerabilities here; use the private advisory link.
+  - type: input
+    id: gaplink-version
+    attributes:
+      label: GAPLink version or commit
+    validations:
+      required: true
+  - type: input
+    id: wolfram-version
+    attributes:
+      label: Wolfram Language version and SystemID
+    validations:
+      required: true
+  - type: input
+    id: gap-version
+    attributes:
+      label: GAP version and packages
+      description: Write "not applicable" for foundation-only failures.
+    validations:
+      required: true
+  - type: input
+    id: transport
+    attributes:
+      label: Transport
+      description: Write "not applicable" if no GAP transport was engaged.
+    validations:
+      required: true
+  - type: textarea
+    id: reproducer
+    attributes:
+      label: Minimal reproducer
+      render: wolfram
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behavior and messages
+    validations:
+      required: true

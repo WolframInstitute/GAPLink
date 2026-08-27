@@ -1,0 +1,33 @@
+# Paclet build output
+/build/
+*.paclet
+
+# Generated documentation indexes
+GAPLink/Documentation/**/Index/
+GAPLink/Documentation/**/SearchIndex/
+GAPLink/Documentation/**/SpellIndex/
+
+# Wolfram Language generated files
+*.mx
+*.wl.bak
+
+# Logs, coverage, and scratch data
+*.log
+/coverage/
+/tmp/
+*.tmp
+*.swp
+*~
+
+# Local configuration and secrets
+.env
+.env.*
+!.env.example
+.mathpass
+.secrets
+.vscode/
+.idea/
+
+# Operating systems
+.DS_Store
+Thumbs.db

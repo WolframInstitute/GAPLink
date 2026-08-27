@@ -1,0 +1,14 @@
+name: Verify Wolfram Engine license
+description: Fail early when CI cannot license Wolfram Engine, then activate it once.
+
+runs:
+  using: composite
+  steps:
+    - name: Check entitlement and activate Wolfram Engine
+      shell: bash
+      run: |
+        if [ -z "${WOLFRAMSCRIPT_ENTITLEMENTID:-}" ]; then
+          echo "::error title=Missing Wolfram license::Add WOLFRAMSCRIPT_ENTITLEMENTID as a repository secret; see CONTRIBUTING.md."
+          exit 1
+        fi
+        wolframscript -code 'Print["Wolfram Engine ", $Version, " | license type: ", $LicenseType]; Quit[0]'

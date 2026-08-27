@@ -1,0 +1,19 @@
+cff-version: 1.2.0
+message: If you use this software, please cite it as below.
+type: software
+title: GAPLink
+abstract: >-
+  A Wolfram Language paclet for low-level interoperability with the GAP system for
+  computational discrete algebra.
+authors:
+  - name: Wolfram Institute
+    website: https://wolframinstitute.org
+license: MIT
+version: 0.1.0
+repository-code: https://github.com/WolframInstitute/GAPLink
+keywords:
+  - GAP
+  - computational algebra
+  - group theory
+  - interoperability
+  - Wolfram Language

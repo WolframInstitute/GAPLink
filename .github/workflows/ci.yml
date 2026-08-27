@@ -1,0 +1,80 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  repository:
+    name: Repository hygiene
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      - name: Check whitespace and line endings
+        run: |
+          empty_tree="$(git hash-object -t tree /dev/null)"
+          git diff --check "$empty_tree" HEAD
+
+      - name: Check repository hooks
+        run: |
+          test -x .githooks/commit-msg
+          test -x .githooks/pre-commit
+          test -x .githooks/pre-push
+          sh -n .githooks/commit-msg
+          sh -n .githooks/pre-commit
+          sh -n .githooks/pre-push
+
+  paclet:
+    name: Check, test, build, and verify (Wolfram 15.0)
+    needs: repository
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    container:
+      image: wolframresearch/wolframengine:15.0
+      options: --user root
+    env:
+      WOLFRAMSCRIPT_ENTITLEMENTID: ${{ secrets.WOLFRAMSCRIPT_ENTITLEMENTID }}
+      QT_QPA_PLATFORM: offscreen
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      - name: Verify Wolfram Engine license
+        uses: ./.github/actions/wolfram-license
+
+      - name: Check paclet
+        run: make check
+
+      - name: Run tests
+        run: make test
+
+      - name: Build paclet
+        id: build
+        run: make build
+
+      - name: Verify built archive in a fresh kernel
+        run: make verify
+
+      - name: Upload verified paclet
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: GAPLink-${{ steps.build.outputs.version }}
+          path: build/*.paclet
+          if-no-files-found: error
+          retention-days: 30

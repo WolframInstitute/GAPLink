@@ -1,0 +1,30 @@
+name: Feature request
+description: Propose an interoperability capability or architectural improvement.
+title: "feat: "
+labels: [enhancement]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Mathematical or integration problem
+      description: Explain the user need without prescribing a transport-specific API.
+    validations:
+      required: true
+  - type: textarea
+    id: capability
+    attributes:
+      label: GAP capability
+      description: Name the relevant GAP operation or package and link authoritative documentation.
+    validations:
+      required: true
+  - type: textarea
+    id: contract
+    attributes:
+      label: Proposed Wolfram Language contract
+      description: Describe inputs, outputs, failures, and behavior when GAP is unavailable.
+    validations:
+      required: true
+  - type: textarea
+    id: constraints
+    attributes:
+      label: Version, package, platform, licensing, or security constraints

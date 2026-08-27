@@ -1,0 +1,16 @@
+# Keep repository text deterministic across development platforms.
+* text=auto eol=lf
+
+# Generated and native artifacts are binary.
+*.paclet binary
+*.mx binary
+*.dll binary
+*.dylib binary
+*.so binary
+*.a binary
+*.lib binary
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.pdf binary
