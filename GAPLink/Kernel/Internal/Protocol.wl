@@ -6,71 +6,45 @@ PackageScoped["gapLinkProtocolEncodeValue"]
 PackageScoped["gapLinkProtocolObjectReference"]
 PackageScoped["gapLinkProtocolReadFrame"]
 
-
 $protocolVersion = 1;
 $protocolMaxPayloadBytes = 64 * 1024^2;
 $protocolMaxDepth = 128;
 $protocolMaxID = 2^63 - 1;
-$protocolFrameCodes = <|
-    "Request" -> "Q",
-    "Response" -> "R",
-    "ErrorEnd" -> "E"
-|>;
-
+$protocolFrameCodes = <|"Request" -> "Q", "Response" -> "R", "ErrorEnd" -> "E"|>;
+$protocolContainerTags = {"q", "d", "p", "l", "r"};
 
 protocolFailure[reason_String] := Failure[
     "GAPProtocolError",
     <|
         "MessageTemplate" -> "The GAP protocol data is not valid.",
-        "MessageParameters" -> <||>,
         "Reason" -> reason
     |>
 ]
-
 
 unsupportedValue[value_] := Failure[
     "GAPUnsupportedValue",
     <|
         "MessageTemplate" -> "The value cannot be sent to GAP.",
-        "MessageParameters" -> <||>,
         "Type" -> ToString[Head[value], InputForm]
     |>
 ]
 
+protocolApply[value_, function_] := If[FailureQ[value], value, function[value]]
 
-protocolTokenQ[token_] := StringQ[token] && StringMatchQ[
-    token,
-    RegularExpression["[0-9a-f]{32}"]
-]
-
+protocolTokenQ[token_] := StringQ[token] &&
+    StringMatchQ[token, RegularExpression["[0-9a-f]{32}"]]
 
 protocolIDQ[id_] := IntegerQ[id] && 1 <= id <= $protocolMaxID
-
-
-protocolASCIIQ[text_String] := AllTrue[ToCharacterCode[text], # <= 127 &]
-
 
 protocolNode[tag_String, data_String] := Module[{node},
     node = tag <> IntegerString[StringLength[data]] <> ":" <> data;
     If[StringLength[node] <= $protocolMaxPayloadBytes,
-        node,
-        protocolFailure["ValueTooLarge"]
-    ]
+        node, protocolFailure["ValueTooLarge"]]
 ]
-
 
 protocolHex[bytes_List] := StringJoin[IntegerString[#, 16, 2] & /@ bytes]
 
-
 protocolSortKeys[keys_List] := SortBy[keys, ToCharacterCode[#, "UTF-8"] &]
-
-
-protocolIntegerString[value_Integer] := If[
-    Negative[value],
-    "-" <> IntegerString[-value],
-    IntegerString[value]
-]
-
 
 protocolEncodeParts[values_List, depth_Integer] := Module[{parts, failure},
     parts = protocolEncodeNode[#, depth + 1] & /@ values;
@@ -78,152 +52,107 @@ protocolEncodeParts[values_List, depth_Integer] := Module[{parts, failure},
     If[FailureQ[failure], failure, StringJoin[parts]]
 ]
 
+protocolEncodeContainer[tag_String, values_List, depth_Integer] := protocolApply[
+    protocolEncodeParts[values, depth],
+    protocolNode[tag, #] &
+]
 
 protocolMachineRealParts[value_Real] := Module[
-    {exact, numerator, denominator, numeratorTwos, denominatorTwos, mantissa},
+    {exact, numerator, numeratorTwos, mantissa},
     exact = SetPrecision[value, Infinity];
     If[exact === 0, Return[{0, 0}]];
 
     numerator = Numerator[exact];
-    denominator = Denominator[exact];
-    denominatorTwos = IntegerExponent[denominator, 2];
-    If[denominator =!= 2^denominatorTwos,
-        Return[protocolFailure["InvalidMachineReal"]]
-    ];
-
     numeratorTwos = IntegerExponent[Abs[numerator], 2];
     mantissa = Quotient[numerator, 2^numeratorTwos];
-    {
-        mantissa,
-        IntegerLength[Abs[mantissa], 2] + numeratorTwos - denominatorTwos
-    }
+    {mantissa,
+        IntegerLength[Abs[mantissa], 2] + numeratorTwos -
+            IntegerExponent[Denominator[exact], 2]}
 ]
 
-
-protocolEncodeRecord[value_Association, depth_Integer] := Module[
-    {keys, parts, failure},
-    keys = Keys[value];
-    If[!AllTrue[keys, StringQ], Return[unsupportedValue[value]]];
-    keys = protocolSortKeys[keys];
-    parts = Flatten[
-        {protocolEncodeNode[#, depth + 1], protocolEncodeNode[value[#], depth + 1]} & /@ keys,
-        1
-    ];
-    failure = SelectFirst[parts, FailureQ, Missing["NotFound"]];
-    If[FailureQ[failure], failure, protocolNode["r", StringJoin[parts]]]
+protocolEncodeNode[value_, depth_Integer] := If[
+    depth > $protocolMaxDepth,
+    protocolFailure["ValueTooDeep"],
+    protocolEncodeData[value, depth]
 ]
 
+protocolEncodeData[value_Integer, _Integer] :=
+    protocolNode["i", ToString[value, InputForm]]
 
-protocolEncodePermutation[value_Cycles, depth_Integer] := Module[{images, data},
+protocolEncodeData[value_Rational, depth_Integer] := protocolEncodeContainer[
+    "q", {Numerator[value], Denominator[value]}, depth
+]
+
+protocolEncodeData[True, _Integer] := protocolNode["t", ""]
+protocolEncodeData[False, _Integer] := protocolNode["f", ""]
+protocolEncodeData[Null, _Integer] := protocolNode["n", ""]
+protocolEncodeData[Missing["GAPFail"], _Integer] := protocolNode["x", ""]
+
+protocolEncodeData[value_Real?MachineNumberQ, depth_Integer] :=
+    protocolEncodeContainer["d", protocolMachineRealParts[value], depth]
+
+protocolEncodeData[value_String, _Integer] :=
+    protocolNode["s", protocolHex[ToCharacterCode[value, "UTF-8"]]]
+
+protocolEncodeData[value_ByteArray, _Integer] :=
+    protocolNode["b", protocolHex[Normal[value]]]
+
+protocolEncodeData[value_Cycles, depth_Integer] := Module[{images},
     images = Quiet @ Check[PermutationList[value], $Failed];
-    If[!ListQ[images] || !PermutationListQ[images],
-        Return[unsupportedValue[value]]
-    ];
-    data = protocolEncodeParts[images, depth];
-    If[FailureQ[data], data, protocolNode["p", data]]
-]
-
-
-protocolEncodeNode[value_, depth_Integer] := Module[
-    {data, parts, numerator, denominator, id},
-    If[depth > $protocolMaxDepth, Return[protocolFailure["ValueTooDeep"]]];
-
-    Which[
-        IntegerQ[value],
-            protocolNode["i", protocolIntegerString[value]],
-
-        Head[value] === Rational,
-            numerator = Numerator[value];
-            denominator = Denominator[value];
-            data = protocolEncodeParts[{numerator, denominator}, depth];
-            If[FailureQ[data], data, protocolNode["q", data]],
-
-        value === True,
-            protocolNode["t", ""],
-
-        value === False,
-            protocolNode["f", ""],
-
-        value === Null,
-            protocolNode["n", ""],
-
-        value === Missing["GAPFail"],
-            protocolNode["x", ""],
-
-        Head[value] === Real && Precision[value] === MachinePrecision,
-            parts = protocolMachineRealParts[value];
-            If[FailureQ[parts],
-                parts,
-                data = protocolEncodeParts[parts, depth];
-                If[FailureQ[data], data, protocolNode["d", data]]
-            ],
-
-        StringQ[value],
-            protocolNode["s", protocolHex[ToCharacterCode[value, "UTF-8"]]],
-
-        Head[value] === ByteArray,
-            protocolNode["b", protocolHex[Normal[value]]],
-
-        Head[value] === Cycles,
-            protocolEncodePermutation[value, depth],
-
-        ListQ[value],
-            data = protocolEncodeParts[value, depth];
-            If[FailureQ[data], data, protocolNode["l", data]],
-
-        AssociationQ[value],
-            protocolEncodeRecord[value, depth],
-
-        MatchQ[value, gapLinkProtocolObjectReference[_Integer]],
-            id = value[[1]];
-            If[protocolIDQ[id],
-                protocolNode["o", IntegerString[id]],
-                unsupportedValue[value]
-            ],
-
-        True,
-            unsupportedValue[value]
+    If[ListQ[images] && PermutationListQ[images],
+        protocolEncodeContainer["p", images, depth],
+        unsupportedValue[value]
     ]
 ]
 
+protocolEncodeData[value_List, depth_Integer] :=
+    protocolEncodeContainer["l", value, depth]
+
+protocolEncodeData[value_Association, depth_Integer] := Module[{keys},
+    keys = Keys[value];
+    If[!AllTrue[keys, StringQ], Return[unsupportedValue[value]]];
+    keys = protocolSortKeys[keys];
+    protocolEncodeContainer["r", Flatten[{#, value[#]} & /@ keys, 1], depth]
+]
+
+protocolEncodeData[value : gapLinkProtocolObjectReference[id_Integer], _Integer] := If[
+    protocolIDQ[id],
+    protocolNode["o", IntegerString[id]],
+    unsupportedValue[value]
+]
+
+protocolEncodeData[value_, _Integer] := unsupportedValue[value]
 
 gapLinkProtocolEncodeValue[value_] := protocolEncodeNode[value, 0]
 
-
 protocolDigitQ[byte_Integer] := 48 <= byte <= 57
 
-
-protocolIntegerData[data_List] := Module[{text, sign, digits},
-    If[data === {} || !AllTrue[data, protocolDigitQ[#] &] && !(
-        First[data] === 45 && Length[data] > 1 &&
-        AllTrue[Rest[data], protocolDigitQ[#] &]
-    ),
-        Return[protocolFailure["InvalidInteger"]]
-    ];
-
-    text = FromCharacterCode[data];
-    If[text === "-0" || (StringLength[text] > 1 && StringStartsQ[text, "0"]) ||
-        (StringLength[text] > 2 && StringStartsQ[text, "-0"]),
-        Return[protocolFailure["InvalidInteger"]]
-    ];
-
-    sign = If[First[data] === 45, -1, 1];
-    digits = If[sign === -1, Rest[data], data];
-    sign * FromDigits[digits - 48]
+protocolUnsignedData[data_List, reason_String] := If[
+    data === {} || !AllTrue[data, protocolDigitQ[#] &] ||
+        (Length[data] > 1 && First[data] === 48),
+    protocolFailure[reason],
+    FromDigits[data - 48]
 ]
 
+protocolIntegerData[data_List] := Module[{negative, value},
+    negative = data =!= {} && First[data] === 45;
+    value = protocolUnsignedData[If[negative, Rest[data], data], "InvalidInteger"];
+    Which[
+        FailureQ[value], value,
+        negative && value === 0, protocolFailure["InvalidInteger"],
+        negative, -value,
+        True, value
+    ]
+]
 
 protocolHexData[data_List] := Module[{nibbles},
-    If[OddQ[Length[data]] || !AllTrue[
-        data,
-        (48 <= # <= 57 || 97 <= # <= 102) &
-    ],
+    If[OddQ[Length[data]] ||
+        !AllTrue[data, (48 <= # <= 57 || 97 <= # <= 102) &],
         Return[protocolFailure["InvalidHex"]]
     ];
     nibbles = data /. byte_Integer :> If[byte <= 57, byte - 48, byte - 87];
     16 * #[[1]] + #[[2]] & /@ Partition[nibbles, 2]
 ]
-
 
 protocolStringData[data_List] := Module[{bytes, value},
     bytes = protocolHexData[data];
@@ -235,13 +164,8 @@ protocolStringData[data_List] := Module[{bytes, value},
     ]
 ]
 
-
-protocolDecodeChildren[
-    bytes_List,
-    start_Integer,
-    end_Integer,
-    depth_Integer
-] := Module[{position = start, result, harvested},
+protocolDecodeChildren[bytes_List, start_Integer, end_Integer, depth_Integer] := Module[
+    {position = start, result, harvested},
     Catch[
         harvested = Reap[
             While[position <= end,
@@ -255,6 +179,15 @@ protocolDecodeChildren[
     ]
 ]
 
+protocolDecodeContainer[
+    bytes_List, start_Integer, end_Integer, depth_Integer, function_
+] := protocolApply[
+    protocolDecodeChildren[bytes, start, end, depth],
+    function
+]
+
+protocolEmptyValue[data_List, value_, reason_String] :=
+    If[data === {}, value, protocolFailure[reason]]
 
 protocolRationalValue[parts_List] := Module[{numerator, denominator},
     If[!MatchQ[parts, {_Integer, _Integer}],
@@ -266,7 +199,6 @@ protocolRationalValue[parts_List] := Module[{numerator, denominator},
         numerator / denominator
     ]
 ]
-
 
 protocolMachineRealValue[parts_List] := Module[
     {mantissa, exponent, bitLength, exact, value, checkedParts},
@@ -289,7 +221,6 @@ protocolMachineRealValue[parts_List] := Module[
     If[checkedParts === parts, value, protocolFailure["InvalidMachineReal"]]
 ]
 
-
 protocolPermutationValue[parts_List] := Module[{value},
     If[!AllTrue[parts, IntegerQ[#] && Positive[#] &] || !PermutationListQ[parts],
         Return[protocolFailure["InvalidPermutation"]]
@@ -300,7 +231,6 @@ protocolPermutationValue[parts_List] := Module[{value},
         protocolFailure["InvalidPermutation"]
     ]
 ]
-
 
 protocolRecordValue[parts_List] := Module[{pairs, keys},
     If[OddQ[Length[parts]], Return[protocolFailure["InvalidRecord"]]];
@@ -313,31 +243,20 @@ protocolRecordValue[parts_List] := Module[{pairs, keys},
     AssociationThread[keys, Last /@ pairs]
 ]
 
-
-protocolObjectValue[data_List] := Module[{id},
-    id = protocolIntegerData[data];
-    If[FailureQ[id], Return[id]];
-    If[protocolIDQ[id],
-        gapLinkProtocolObjectReference[id],
+protocolObjectValue[data_List] := protocolApply[
+    protocolIntegerData[data],
+    If[protocolIDQ[#],
+        gapLinkProtocolObjectReference[#],
         protocolFailure["InvalidObject"]
-    ]
+    ] &
 ]
 
-
-protocolDecodeNode[
-    bytes_List,
-    start_Integer,
-    limit_Integer,
-    depth_Integer
-] := Module[
-    {
-        tag, position, digitStart, dataLength = 0, dataStart, dataEnd,
-        data, parts, value
-    },
+protocolDecodeNode[bytes_List, start_Integer, limit_Integer, depth_Integer] := Module[
+    {tag, position, digitStart, dataLength = 0, dataStart, dataEnd, data, value},
     If[depth > $protocolMaxDepth, Return[protocolFailure["ValueTooDeep"]]];
     If[start > limit, Return[protocolFailure["MissingValue"]]];
 
-    tag = bytes[[start]];
+    tag = FromCharacterCode[bytes[[start]]];
     position = start + 1;
     digitStart = position;
     If[position > limit || !protocolDigitQ[bytes[[position]]],
@@ -361,158 +280,89 @@ protocolDecodeNode[
     dataStart = position + 1;
     dataEnd = dataStart + dataLength - 1;
     If[dataEnd > limit, Return[protocolFailure["ShortValue"]]];
-    If[!MemberQ[{113, 100, 112, 108, 114}, tag],
+    If[!MemberQ[$protocolContainerTags, tag],
         data = If[dataLength === 0, {}, Take[bytes, {dataStart, dataEnd}]]
     ];
 
     value = Switch[tag,
-        105,
-            protocolIntegerData[data],
-        113,
-            parts = protocolDecodeChildren[bytes, dataStart, dataEnd, depth];
-            If[FailureQ[parts], parts, protocolRationalValue[parts]],
-        116,
-            If[data === {}, True, protocolFailure["InvalidTrue"]],
-        102,
-            If[data === {}, False, protocolFailure["InvalidFalse"]],
-        110,
-            If[data === {}, Null, protocolFailure["InvalidNull"]],
-        120,
-            If[data === {}, Missing["GAPFail"], protocolFailure["InvalidFail"]],
-        100,
-            parts = protocolDecodeChildren[bytes, dataStart, dataEnd, depth];
-            If[FailureQ[parts], parts, protocolMachineRealValue[parts]],
-        115,
-            protocolStringData[data],
-        98,
-            parts = protocolHexData[data];
-            If[FailureQ[parts], parts, ByteArray[parts]],
-        112,
-            parts = protocolDecodeChildren[bytes, dataStart, dataEnd, depth];
-            If[FailureQ[parts], parts, protocolPermutationValue[parts]],
-        108,
-            protocolDecodeChildren[bytes, dataStart, dataEnd, depth],
-        114,
-            parts = protocolDecodeChildren[bytes, dataStart, dataEnd, depth];
-            If[FailureQ[parts], parts, protocolRecordValue[parts]],
-        111,
-            protocolObjectValue[data],
-        _,
-            protocolFailure["UnknownTag"]
+        "i", protocolIntegerData[data],
+        "q", protocolDecodeContainer[bytes, dataStart, dataEnd, depth,
+            protocolRationalValue],
+        "t", protocolEmptyValue[data, True, "InvalidTrue"],
+        "f", protocolEmptyValue[data, False, "InvalidFalse"],
+        "n", protocolEmptyValue[data, Null, "InvalidNull"],
+        "x", protocolEmptyValue[data, Missing["GAPFail"], "InvalidFail"],
+        "d", protocolDecodeContainer[bytes, dataStart, dataEnd, depth,
+            protocolMachineRealValue],
+        "s", protocolStringData[data],
+        "b", protocolApply[protocolHexData[data], ByteArray],
+        "p", protocolDecodeContainer[bytes, dataStart, dataEnd, depth,
+            protocolPermutationValue],
+        "l", protocolDecodeChildren[bytes, dataStart, dataEnd, depth],
+        "r", protocolDecodeContainer[bytes, dataStart, dataEnd, depth,
+            protocolRecordValue],
+        "o", protocolObjectValue[data],
+        _, protocolFailure["UnknownTag"]
     ];
     If[FailureQ[value], value, {value, dataEnd + 1}]
 ]
-
 
 gapLinkProtocolDecodeValue[encoded_String] := Block[
     {$RecursionLimit = Max[$RecursionLimit, 4096]},
     Module[{codes, result},
         If[
             StringLength[encoded] > $protocolMaxPayloadBytes ||
-                !protocolASCIIQ[encoded],
+                !AllTrue[ToCharacterCode[encoded], # <= 127 &],
             Return[protocolFailure["InvalidValue"]]
         ];
         codes = ToCharacterCode[encoded];
         If[codes === {}, Return[protocolFailure["MissingValue"]]];
         result = protocolDecodeNode[codes, 1, Length[codes], 0];
-        If[FailureQ[result],
-            result,
-            If[result[[2]] === Length[codes] + 1,
-                result[[1]],
-                protocolFailure["TrailingData"]
-            ]
-        ]
+        protocolApply[result, If[#[[2]] === Length[codes] + 1,
+            #[[1]], protocolFailure["TrailingData"]] &]
     ]
 ]
-
 
 gapLinkProtocolDecodeValue[_] := protocolFailure["InvalidValue"]
 
-
-protocolFrameHeader[
-    token_String,
-    kind_String,
-    requestID_Integer,
-    payloadLength_Integer
-] := StringRiffle[
-    {
-        "GAPLINK",
-        token,
-        IntegerString[$protocolVersion],
-        kind,
-        IntegerString[requestID],
-        IntegerString[payloadLength]
-    },
-    ":"
-] <> ":"
-
-
-protocolFrameBytes[text_String] := ByteArray[ToCharacterCode[text, "ASCII"]]
-
+protocolBuildFrame[
+    channel_String, token_String, requestID_Integer, payload_String
+] := ByteArray @ ToCharacterCode[
+    StringRiffle[
+        {"GAPLINK", token, IntegerString[$protocolVersion],
+            $protocolFrameCodes[channel], IntegerString[requestID],
+            IntegerString[StringLength[payload]]},
+        ":"
+    ] <> ":" <> payload,
+    "ASCII"
+]
 
 gapLinkProtocolEncodeFrame[
     channel : ("Request" | "Response"),
-    token_String,
-    requestID_Integer,
-    payload_
-] := Module[{encoded},
-    If[!protocolTokenQ[token] || !protocolIDQ[requestID],
-        Return[protocolFailure["InvalidFrame"]]
-    ];
-    encoded = gapLinkProtocolEncodeValue[payload];
-    If[FailureQ[encoded], Return[encoded]];
-    If[StringLength[encoded] > $protocolMaxPayloadBytes,
-        Return[protocolFailure["PayloadTooLarge"]]
-    ];
-    protocolFrameBytes[
-        protocolFrameHeader[
-            token,
-            $protocolFrameCodes[channel],
-            requestID,
-            StringLength[encoded]
-        ] <> encoded
-    ]
+    token_?protocolTokenQ, requestID_?protocolIDQ, payload_
+] := protocolApply[
+    gapLinkProtocolEncodeValue[payload],
+    protocolBuildFrame[channel, token, requestID, #] &
 ]
 
-
-gapLinkProtocolEncodeFrame[
-    "ErrorEnd",
-    token_String,
-    requestID_Integer
-] := If[protocolTokenQ[token] && protocolIDQ[requestID],
-    protocolFrameBytes[
-        protocolFrameHeader[token, $protocolFrameCodes["ErrorEnd"], requestID, 0]
-    ],
-    protocolFailure["InvalidFrame"]
-]
-
+gapLinkProtocolEncodeFrame["ErrorEnd", token_?protocolTokenQ,
+    requestID_?protocolIDQ] := protocolBuildFrame["ErrorEnd", token, requestID, ""]
 
 gapLinkProtocolEncodeFrame[___] := protocolFailure["InvalidFrame"]
 
-
-protocolPrefixOverlap[bytes_List, prefix_List] := Module[
-    {maximum, overlap = 0},
-    maximum = Min[Length[bytes], Length[prefix] - 1];
-    Do[
-        If[Take[bytes, -count] === Take[prefix, count],
-            overlap = count;
-            Break[]
-        ],
-        {count, maximum, 1, -1}
-    ];
-    overlap
+protocolPrefixOverlap[bytes_List, prefix_List] := SelectFirst[
+    Reverse @ Range[Min[Length[bytes], Length[prefix] - 1]],
+    Take[bytes, -#] === Take[prefix, #] &,
+    0
 ]
-
 
 protocolFrameField[bytes_List, start_Integer, maximum_Integer] := Module[
     {end = start, count},
     While[end <= Length[bytes] && bytes[[end]] =!= 58, end++];
     If[end > Length[bytes],
         count = Length[bytes] - start + 1;
-        Return[If[count <= maximum,
-            Missing["Incomplete"],
-            protocolFailure["InvalidHeader"]
-        ]]
+        Return[If[count <= maximum, Missing["Incomplete"],
+            protocolFailure["InvalidHeader"]]]
     ];
     count = end - start;
     If[count < 1 || count > maximum,
@@ -520,7 +370,6 @@ protocolFrameField[bytes_List, start_Integer, maximum_Integer] := Module[
         {Take[bytes, {start, end - 1}], end + 1}
     ]
 ]
-
 
 protocolFrameFields[bytes_List, start_Integer] := Module[
     {position = start, result, fields = {}},
@@ -536,91 +385,65 @@ protocolFrameFields[bytes_List, start_Integer] := Module[
     ]
 ]
 
-
-protocolUnsignedField[data_List] := Module[{value},
-    If[data === {} || !AllTrue[data, protocolDigitQ[#] &] ||
-        (Length[data] > 1 && First[data] === 48),
-        Return[protocolFailure["InvalidHeader"]]
-    ];
-    value = FromDigits[data - 48];
-    value
-]
-
-
-protocolIncompleteFrame[bytes_List, start_Integer] := <|
+protocolIncompleteFrame[bytes_List, outputLength_Integer] := <|
     "Status" -> "Incomplete",
-    "Output" -> ByteArray[Take[bytes, start - 1]],
-    "Buffer" -> ByteArray[Drop[bytes, start - 1]]
+    "Output" -> ByteArray[Take[bytes, outputLength]],
+    "Buffer" -> ByteArray[Drop[bytes, outputLength]]
 |>
 
-
-protocolFrameWithoutMarker[bytes_List, prefix_List] := Module[{overlap, split},
-    overlap = protocolPrefixOverlap[bytes, prefix];
-    split = Length[bytes] - overlap;
-    <|
-        "Status" -> "Incomplete",
-        "Output" -> ByteArray[Take[bytes, split]],
-        "Buffer" -> ByteArray[Drop[bytes, split]]
-    |>
+protocolFrameError[channel_String, requestID_Integer, version_Integer,
+    frameChannel_String, frameID_Integer, payloadLength_Integer] := Which[
+    version =!= $protocolVersion, "UnsupportedVersion",
+    frameChannel =!= $protocolFrameCodes[channel], "WrongFrameKind",
+    frameID =!= requestID, "WrongRequestID",
+    payloadLength > $protocolMaxPayloadBytes, "PayloadTooLarge",
+    channel === "ErrorEnd" && payloadLength =!= 0 ||
+        channel =!= "ErrorEnd" && payloadLength === 0, "InvalidPayloadLength",
+    True, None
 ]
 
-
 gapLinkProtocolReadFrame[
-    channel_String,
-    buffer_ByteArray,
-    token_String,
-    requestID_Integer
+    channel : ("Request" | "Response" | "ErrorEnd"),
+    buffer_ByteArray, token_?protocolTokenQ, requestID_?protocolIDQ
 ] := Module[
     {
         bytes, prefix, positions, start, fieldsResult, fields, position,
         version, frameChannel, frameID, payloadLength, payloadEnd,
-        payloadBytes, payload, result
+        payloadBytes, result, error
     },
-    If[!KeyExistsQ[$protocolFrameCodes, channel] || !protocolTokenQ[token] ||
-        !protocolIDQ[requestID],
-        Return[protocolFailure["InvalidFrame"]]
-    ];
-
     bytes = Normal[buffer];
     prefix = ToCharacterCode["GAPLINK:" <> token <> ":", "ASCII"];
     positions = SequencePosition[bytes, prefix, 1];
-    If[positions === {}, Return[protocolFrameWithoutMarker[bytes, prefix]]];
+    If[positions === {}, Return @ protocolIncompleteFrame[
+        bytes,
+        Length[bytes] - protocolPrefixOverlap[bytes, prefix]
+    ]];
 
     start = positions[[1, 1]];
     position = positions[[1, 2]] + 1;
     fieldsResult = protocolFrameFields[bytes, position];
-    If[MissingQ[fieldsResult], Return[protocolIncompleteFrame[bytes, start]]];
+    If[MissingQ[fieldsResult],
+        Return[protocolIncompleteFrame[bytes, start - 1]]
+    ];
     If[FailureQ[fieldsResult], Return[fieldsResult]];
     {fields, position} = fieldsResult;
 
-    version = protocolUnsignedField[fields[[1]]];
-    frameID = protocolUnsignedField[fields[[3]]];
-    payloadLength = protocolUnsignedField[fields[[4]]];
+    version = protocolUnsignedData[fields[[1]], "InvalidHeader"];
+    frameID = protocolUnsignedData[fields[[3]], "InvalidHeader"];
+    payloadLength = protocolUnsignedData[fields[[4]], "InvalidHeader"];
     If[AnyTrue[{version, frameID, payloadLength}, FailureQ],
         Return[protocolFailure["InvalidHeader"]]
     ];
     frameChannel = FromCharacterCode[fields[[2]]];
 
-    If[version =!= $protocolVersion,
-        Return[protocolFailure["UnsupportedVersion"]]
+    error = protocolFrameError[
+        channel, requestID, version, frameChannel, frameID, payloadLength
     ];
-    If[frameChannel =!= $protocolFrameCodes[channel],
-        Return[protocolFailure["WrongFrameKind"]]
-    ];
-    If[frameID =!= requestID,
-        Return[protocolFailure["WrongRequestID"]]
-    ];
-    If[payloadLength > $protocolMaxPayloadBytes,
-        Return[protocolFailure["PayloadTooLarge"]]
-    ];
-    If[channel === "ErrorEnd" && payloadLength =!= 0 ||
-        channel =!= "ErrorEnd" && payloadLength === 0,
-        Return[protocolFailure["InvalidPayloadLength"]]
-    ];
+    If[StringQ[error], Return[protocolFailure[error]]];
 
     payloadEnd = position + payloadLength - 1;
     If[payloadEnd > Length[bytes],
-        Return[protocolIncompleteFrame[bytes, start]]
+        Return[protocolIncompleteFrame[bytes, start - 1]]
     ];
     payloadBytes = If[payloadLength === 0,
         {},
@@ -639,9 +462,10 @@ gapLinkProtocolReadFrame[
     If[!AllTrue[payloadBytes, # <= 127 &],
         Return[protocolFailure["InvalidPayload"]]
     ];
-    payload = gapLinkProtocolDecodeValue[FromCharacterCode[payloadBytes]];
-    If[FailureQ[payload], payload, Append[result, "Payload" -> payload]]
+    protocolApply[
+        gapLinkProtocolDecodeValue[FromCharacterCode[payloadBytes]],
+        Append[result, "Payload" -> #] &
+    ]
 ]
-
 
 gapLinkProtocolReadFrame[___] := protocolFailure["InvalidFrame"]

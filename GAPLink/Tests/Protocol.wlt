@@ -1,25 +1,18 @@
 Needs["WolframInstitute`GAPLink`"];
 
-encodeValue = Symbol[
-    "WolframInstitute`GAPLink`PackageScope`gapLinkProtocolEncodeValue"
-];
-decodeValue = Symbol[
-    "WolframInstitute`GAPLink`PackageScope`gapLinkProtocolDecodeValue"
-];
-encodeFrame = Symbol[
-    "WolframInstitute`GAPLink`PackageScope`gapLinkProtocolEncodeFrame"
-];
-readFrame = Symbol[
-    "WolframInstitute`GAPLink`PackageScope`gapLinkProtocolReadFrame"
-];
-objectReference = Symbol[
-    "WolframInstitute`GAPLink`PackageScope`gapLinkProtocolObjectReference"
-];
+{encodeValue, decodeValue, encodeFrame, readFrame, objectReference} =
+    Symbol["WolframInstitute`GAPLink`PackageScope`" <> #] & /@ {
+        "gapLinkProtocolEncodeValue", "gapLinkProtocolDecodeValue",
+        "gapLinkProtocolEncodeFrame", "gapLinkProtocolReadFrame",
+        "gapLinkProtocolObjectReference"
+    };
 
 token = "0123456789abcdef0123456789abcdef";
 otherToken = "fedcba9876543210fedcba9876543210";
 asciiBytes[text_String] := ByteArray[ToCharacterCode[text, "ASCII"]];
-
+makeFrame[channel_, id_, payload___] := encodeFrame[channel, token, id, payload];
+read[channel_, bytes_, id_] := readFrame[channel, bytes, token, id];
+joinBytes[parts__ByteArray] := ByteArray[Join @@ (Normal /@ {parts})];
 
 VerificationTest[
     encodeValue /@ {
@@ -148,13 +141,13 @@ VerificationTest[
 ]
 
 VerificationTest[
-    FromCharacterCode @ Normal @ encodeFrame["Request", token, 1, 42],
+    FromCharacterCode @ Normal @ makeFrame["Request", 1, 42],
     "GAPLINK:" <> token <> ":1:Q:1:5:i2:42",
     TestID -> "Encode-Request-Frame"
 ]
 
 VerificationTest[
-    FromCharacterCode @ Normal @ encodeFrame["ErrorEnd", token, 7],
+    FromCharacterCode @ Normal @ makeFrame["ErrorEnd", 7],
     "GAPLINK:" <> token <> ":1:E:7:0:",
     TestID -> "Encode-Error-End"
 ]
@@ -162,13 +155,9 @@ VerificationTest[
 VerificationTest[
     Module[{payload, frame, buffer, result},
         payload = <|"Result" -> 42, "Status" -> "OK"|>;
-        frame = encodeFrame["Response", token, 9, payload];
-        buffer = ByteArray @ Join[
-            Normal @ asciiBytes["printed"],
-            Normal[frame],
-            Normal @ asciiBytes["rest"]
-        ];
-        result = readFrame["Response", buffer, token, 9];
+        frame = makeFrame["Response", 9, payload];
+        buffer = joinBytes[asciiBytes["printed"], frame, asciiBytes["rest"]];
+        result = read["Response", buffer, 9];
         {
             result["Status"],
             result["Output"],
@@ -188,24 +177,15 @@ VerificationTest[
 VerificationTest[
     Module[{payload, frame, bytes, first, second},
         payload = <|"Result" -> {1, 2, 3}, "Status" -> "OK"|>;
-        frame = encodeFrame["Response", token, 11, payload];
+        frame = makeFrame["Response", 11, payload];
         bytes = Normal[frame];
         And @@ Table[
-            first = readFrame[
-                "Response",
-                ByteArray[Take[bytes, count]],
-                token,
-                11
-            ];
+            first = read["Response", ByteArray[Take[bytes, count]], 11];
             If[count === Length[bytes],
                 first["Status"] === "Complete" && first["Payload"] === payload,
-                second = readFrame[
+                second = read[
                     "Response",
-                    ByteArray @ Join[
-                        Normal[first["Buffer"]],
-                        Drop[bytes, count]
-                    ],
-                    token,
+                    joinBytes[first["Buffer"], ByteArray[Drop[bytes, count]]],
                     11
                 ];
                 first["Status"] === "Incomplete" &&
@@ -221,12 +201,7 @@ VerificationTest[
 
 VerificationTest[
     Module[{result},
-        result = readFrame[
-            "Response",
-            asciiBytes["textGAPLI"],
-            token,
-            1
-        ];
+        result = read["Response", asciiBytes["textGAPLI"], 1];
         {result["Status"], result["Output"], result["Buffer"]}
     ],
     {"Incomplete", asciiBytes["text"], asciiBytes["GAPLI"]},
@@ -236,9 +211,9 @@ VerificationTest[
 VerificationTest[
     Module[{wrong, right, buffer, result},
         wrong = encodeFrame["Response", otherToken, 13, <|"Result" -> 1|>];
-        right = encodeFrame["Response", token, 13, <|"Result" -> 2|>];
-        buffer = ByteArray @ Join[Normal[wrong], Normal[right]];
-        result = readFrame["Response", buffer, token, 13];
+        right = makeFrame["Response", 13, <|"Result" -> 2|>];
+        buffer = joinBytes[wrong, right];
+        result = read["Response", buffer, 13];
         {result["Output"], result["Payload"]}
     ],
     {
@@ -250,10 +225,10 @@ VerificationTest[
 
 VerificationTest[
     Module[{frame, buffer, result, output},
-        frame = encodeFrame["Response", token, 15, <|"Result" -> 1|>];
+        frame = makeFrame["Response", 15, <|"Result" -> 1|>];
         output = ByteArray[{255, 0, 65}];
-        buffer = ByteArray @ Join[Normal[output], Normal[frame]];
-        result = readFrame["Response", buffer, token, 15];
+        buffer = joinBytes[output, frame];
+        result = read["Response", buffer, 15];
         result["Output"]
     ],
     ByteArray[{255, 0, 65}],
@@ -262,32 +237,26 @@ VerificationTest[
 
 VerificationTest[
     Module[{frame, text},
-        frame = encodeFrame["Response", token, 17, <|"Result" -> 1|>];
+        frame = makeFrame["Response", 17, <|"Result" -> 1|>];
         text = FromCharacterCode[Normal[frame]];
         frame = asciiBytes @ StringReplace[text, ":1:R:17:" -> ":2:R:17:"];
-        FailureQ[readFrame["Response", frame, token, 17]]
+        FailureQ[read["Response", frame, 17]]
     ],
     True,
     TestID -> "Reject-Protocol-Version"
 ]
 
 VerificationTest[
-    FailureQ @ readFrame[
-        "Response",
-        encodeFrame["Response", token, 19, <|"Result" -> 1|>],
-        token,
-        20
+    FailureQ @ read[
+        "Response", makeFrame["Response", 19, <|"Result" -> 1|>], 20
     ],
     True,
     TestID -> "Reject-Request-ID"
 ]
 
 VerificationTest[
-    FailureQ @ readFrame[
-        "Response",
-        encodeFrame["Request", token, 21, <|"Operation" -> "Hello"|>],
-        token,
-        21
+    FailureQ @ read[
+        "Response", makeFrame["Request", 21, <|"Operation" -> "Hello"|>], 21
     ],
     True,
     TestID -> "Reject-Frame-Kind"
@@ -300,7 +269,7 @@ VerificationTest[
             "GAPLINK:" <> token <> ":1:R:1:05:i1:1",
             "GAPLINK:" <> token <> ":1:R:1:0:"
         },
-        FailureQ @ readFrame["Response", asciiBytes[#], token, 1] &
+        FailureQ @ read["Response", asciiBytes[#], 1] &
     ],
     True,
     TestID -> "Reject-Payload-Length"
@@ -308,13 +277,9 @@ VerificationTest[
 
 VerificationTest[
     Module[{frame, buffer, result},
-        frame = encodeFrame["ErrorEnd", token, 23];
-        buffer = ByteArray @ Join[
-            Normal @ asciiBytes["warning"],
-            Normal[frame],
-            Normal @ asciiBytes["rest"]
-        ];
-        result = readFrame["ErrorEnd", buffer, token, 23];
+        frame = makeFrame["ErrorEnd", 23];
+        buffer = joinBytes[asciiBytes["warning"], frame, asciiBytes["rest"]];
+        result = read["ErrorEnd", buffer, 23];
         {
             result["Status"],
             result["Output"],
