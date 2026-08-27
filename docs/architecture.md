@@ -25,11 +25,12 @@ Wolfram Language projects -> GAPLink -> GAP
 - [The first version runs GAP as a separate program](decisions/0003-backend.md).
 - [The first public API uses explicit GAP sessions](decisions/0004-public-api.md).
 - [Values are copied or kept in GAP](decisions/0005-value-conversion.md).
+- [Uncertain process state stops the session](decisions/0006-errors-and-time-limits.md).
 
 ## Still to decide
 
 - which versions and systems we support
-- how errors and time limits work
+- how the process protocol and printed output work
 - whether a future release includes GAP
 
 Record each choice in `docs/decisions/` before writing that part of the project.

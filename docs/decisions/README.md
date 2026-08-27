@@ -12,8 +12,9 @@ Accepted:
 - [0003: How GAP runs](0003-backend.md)
 - [0004: Public functions and sessions](0004-public-api.md)
 - [0005: GAP and Wolfram Language values](0005-value-conversion.md)
+- [0006: Errors and time limits](0006-errors-and-time-limits.md)
 
 Next:
 
-- errors and time limits
 - supported versions and systems
+- process protocol and printed output
