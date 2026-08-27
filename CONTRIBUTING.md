@@ -52,7 +52,7 @@ type(optional-scope): short description
 
 ## CI
 
-CI runs `make all` with Wolfram Engine 15.0. Add the license entitlement with:
+CI runs the development scripts with Wolfram Engine 15.0. Add the license entitlement with:
 
 ```bash
 gh secret set WOLFRAMSCRIPT_ENTITLEMENTID --repo WolframInstitute/GAPLink
