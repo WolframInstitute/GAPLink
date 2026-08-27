@@ -27,10 +27,10 @@ Wolfram Language projects -> GAPLink -> GAP
 - [Values are copied or kept in GAP](decisions/0005-value-conversion.md).
 - [Uncertain process state stops the session](decisions/0006-errors-and-time-limits.md).
 - [The first release targets recent GAP 4 releases on Linux, macOS, and Windows](decisions/0007-supported-versions-and-systems.md).
+- [The process uses private framed messages and keeps GAP output separate](decisions/0008-process-protocol-and-output.md).
 
 ## Still to decide
 
-- how the process protocol and printed output work
 - whether a future release includes GAP
 
 Record each choice in `docs/decisions/` before writing that part of the project.
