@@ -11,9 +11,9 @@ Accepted:
 - [0002: GAP installation](0002-gap-installation.md)
 - [0003: How GAP runs](0003-backend.md)
 - [0004: Public functions and sessions](0004-public-api.md)
+- [0005: GAP and Wolfram Language values](0005-value-conversion.md)
 
 Next:
 
-- GAP and Wolfram Language values
 - errors and time limits
 - supported versions and systems
