@@ -7,7 +7,7 @@ Notable changes are listed here.
 ### Added
 
 - Added the initial paclet, development commands, and CI.
-- Added decisions for project scope, GAP installation, and how GAP runs.
+- Added decisions for project scope, GAP installation, how GAP runs, and the first public API.
 
 ### Changed
 

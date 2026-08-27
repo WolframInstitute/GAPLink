@@ -18,12 +18,18 @@ Wolfram Language projects -> GAPLink -> GAP
 - Check whether optional GAP packages are installed.
 - Record the source and license of outside code and files.
 
-## Choices to make
+## Accepted choices
 
-- how GAPLink runs GAP
-- how GAPLink finds GAP
+- [GAPLink is a separate, general project](decisions/0001-project-scope.md).
+- [Users install GAP](decisions/0002-gap-installation.md).
+- [The first version runs GAP as a separate program](decisions/0003-backend.md).
+- [The first public API uses explicit GAP sessions](decisions/0004-public-api.md).
+
+## Still to decide
+
 - which versions and systems we support
 - how GAP and Wolfram Language values are matched
+- how errors and time limits work
 - whether a future release includes GAP
 
 Record each choice in `docs/decisions/` before writing that part of the project.

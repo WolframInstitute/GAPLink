@@ -10,6 +10,7 @@ Accepted:
 - [0001: Project scope](0001-project-scope.md)
 - [0002: GAP installation](0002-gap-installation.md)
 - [0003: How GAP runs](0003-backend.md)
+- [0004: Public functions and sessions](0004-public-api.md)
 
 Next:
 
