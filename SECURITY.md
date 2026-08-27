@@ -7,5 +7,5 @@ Include:
 - a small example
 - the expected and actual result
 
-GAPLink does not execute GAP yet. Future backends must handle unsafe input, timeouts, cleanup,
-and invalid data.
+GAPLink does not run GAP yet. Future GAP support must reject bad input, stop slow calls, and
+clean up after errors.

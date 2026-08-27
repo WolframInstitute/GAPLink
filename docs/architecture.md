@@ -1,7 +1,7 @@
-# Architecture
+# Design
 
-GAPLink provides a general Wolfram Language interface to GAP. Other projects may use GAPLink,
-but GAPLink must not depend on them.
+GAPLink connects Wolfram Language to GAP. It can be used by PureMath or any other project.
+It does not depend on those projects.
 
 ```text
 Wolfram Language projects -> GAPLink -> GAP
@@ -10,19 +10,20 @@ Wolfram Language projects -> GAPLink -> GAP
 ## Rules
 
 - Loading GAPLink must not start or install GAP.
-- The public API must work with any supported backend.
-- Convert common values to Wolfram Language. Use handles for other GAP objects.
-- Return clear `Failure` objects for backend errors.
-- Report GAP, GAPLink, package, backend, and platform versions.
-- Detect optional GAP packages instead of assuming they are installed.
-- Record the source and license of third-party code and binaries.
+- Public functions must not depend on one way of running GAP.
+- Convert simple GAP values to Wolfram Language values.
+- Keep a reference to GAP objects that cannot be converted.
+- Return a clear `Failure` when something goes wrong.
+- Report the versions of GAP, GAPLink, and any GAP packages in use.
+- Check whether optional GAP packages are installed.
+- Record the source and license of outside code and files.
 
-## Open decisions
+## Choices to make
 
-- backend: process, libgap, or both
-- GAP discovery and installation
-- supported GAP versions, packages, and platforms
-- value conversion and object handles
-- whether releases bundle GAP
+- how GAPLink runs GAP
+- how GAPLink finds GAP
+- which versions and systems we support
+- how GAP and Wolfram Language values are matched
+- whether a future release includes GAP
 
-Record these decisions in `docs/decisions/` before implementation.
+Record each choice in `docs/decisions/` before writing that part of the project.

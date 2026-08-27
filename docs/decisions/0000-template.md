@@ -1,25 +1,25 @@
-# ADR 0000: Decision title
+# Decision 0000: Title
 
 - Status: Proposed
 - Date: YYYY-MM-DD
-- Owners: TBD
+- Owner: TBD
 
-## Context
+## Why
 
-What needs to be decided, and why?
+Why do we need this choice?
 
-## Decision
+## Choice
 
 What did we choose?
 
-## Alternatives considered
+## Other options
 
 What else did we consider?
 
-## Consequences
+## Result
 
 What changes because of this decision?
 
-## Validation
+## Checks
 
 How will we verify it?

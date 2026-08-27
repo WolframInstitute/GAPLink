@@ -12,9 +12,9 @@ GAP is not needed for the current tests.
 
 - GAPLink must not depend on projects that use it.
 - Loading the paclet must not start or install GAP.
-- Keep backend details out of the public API.
+- Do not tie public functions to one way of running GAP.
 - Review licenses before adding GAP code, packages, or binaries.
-- Keep tests that need GAP separate from tests that only load the paclet.
+- Keep GAP tests separate from tests that do not need GAP.
 
 ## Development
 
@@ -52,10 +52,39 @@ type(optional-scope): short description
 
 ## CI
 
-CI runs the development scripts with Wolfram Engine 15.0. Add the license entitlement with:
+CI uses Wolfram Engine 15.0. Create an entitlement that lasts long enough:
+
+```wl
+entitlement = CreateLicenseEntitlement[
+    <|
+        "EntitlementExpiration" -> Quantity[1, "Years"],
+        "LicenseExpiration" -> Quantity[1, "Hours"],
+        "StandardKernelLimit" -> 1
+    |>
+];
+
+entitlement["EntitlementID"]
+```
+
+This may use Service Credits. Add the entitlement ID to GitHub:
 
 ```bash
 gh secret set WOLFRAMSCRIPT_ENTITLEMENTID --repo WolframInstitute/GAPLink
 ```
 
-Paste the value when prompted. CI does not install GAP or publish releases.
+Paste the value when asked. GitHub keeps it until the entitlement expires.
+
+To use the same entitlement in more repositories:
+
+```bash
+gh secret set WOLFRAMSCRIPT_ENTITLEMENTID --org WolframInstitute --repos GAPLink
+```
+
+You need organization owner access. If GAPLink already has its own secret, delete it after
+the organization secret is ready:
+
+```bash
+gh secret delete WOLFRAMSCRIPT_ENTITLEMENTID --repo WolframInstitute/GAPLink
+```
+
+CI does not install GAP or publish releases.
