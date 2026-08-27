@@ -1,5 +1,4 @@
 WOLFRAMSCRIPT ?= wolframscript
-SCRIPTS := Scripts
 
 .DEFAULT_GOAL := help
 .PHONY: help all check test build verify lint hooks clean
@@ -18,19 +17,19 @@ help:
 all: check test build verify
 
 check:
-	$(WOLFRAMSCRIPT) -file $(SCRIPTS)/CheckPaclet.wls
+	$(WOLFRAMSCRIPT) -file scripts/check.wls
 
 test:
-	$(WOLFRAMSCRIPT) -file $(SCRIPTS)/TestPaclet.wls
+	$(WOLFRAMSCRIPT) -file scripts/test.wls
 
 build:
-	$(WOLFRAMSCRIPT) -file $(SCRIPTS)/BuildPaclet.wls
+	$(WOLFRAMSCRIPT) -file scripts/build.wls
 
 verify:
-	$(WOLFRAMSCRIPT) -file $(SCRIPTS)/VerifyBuild.wls
+	$(WOLFRAMSCRIPT) -file scripts/verify.wls
 
 lint:
-	$(WOLFRAMSCRIPT) -file $(SCRIPTS)/LintFiles.wls $(FILES)
+	$(WOLFRAMSCRIPT) -file scripts/lint.wls $(FILES)
 
 hooks:
 	git config core.hooksPath .githooks

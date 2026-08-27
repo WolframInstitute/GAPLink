@@ -52,5 +52,10 @@ type(optional-scope): short description
 
 ## CI
 
-CI runs `make all` with Wolfram Engine 15.0. Add `WOLFRAMSCRIPT_ENTITLEMENTID` as a repository
-secret. CI does not install GAP or publish releases.
+CI runs `make all` with Wolfram Engine 15.0. Add the license entitlement with:
+
+```bash
+gh secret set WOLFRAMSCRIPT_ENTITLEMENTID --repo WolframInstitute/GAPLink
+```
+
+Paste the value when prompted. CI does not install GAP or publish releases.

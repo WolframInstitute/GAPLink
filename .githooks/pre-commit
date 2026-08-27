@@ -17,4 +17,4 @@ $files
 FILES
 
 echo "pre-commit: linting $# staged Wolfram Language file(s)..."
-exec wolframscript -file Scripts/LintFiles.wls "$@"
+exec wolframscript -file scripts/lint.wls "$@"

@@ -31,3 +31,7 @@ GAPLink/Documentation/**/SpellIndex/
 # Operating systems
 .DS_Store
 Thumbs.db
+
+# nit stuff
+.nit/
+gol-snapshots
