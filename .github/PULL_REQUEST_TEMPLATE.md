@@ -1,18 +1,15 @@
 ## Summary
 
-Describe the problem and the chosen change.
+What changed and why?
 
-## Validation
+## Tests
 
-- [ ] `make check`
-- [ ] `make test`
-- [ ] `make build`
-- [ ] `make verify`
-- [ ] Documentation or ADR updated when the compatibility contract changes
+- [ ] `make all`
+- [ ] Documentation updated if needed
 - [ ] `CHANGELOG.md` updated for user-visible changes
 
-## External boundary
+## GAP impact
 
-- GAP version/package assumptions:
-- Transport or platform impact:
-- New third-party code, binary, license, installation, process, or network behavior:
+- GAP versions or packages:
+- Backend or platform changes:
+- New third-party code or binaries:

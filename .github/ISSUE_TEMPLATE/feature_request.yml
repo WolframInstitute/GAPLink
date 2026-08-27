@@ -1,30 +1,24 @@
 name: Feature request
-description: Propose an interoperability capability or architectural improvement.
+description: Suggest a GAPLink feature.
 title: "feat: "
 labels: [enhancement]
 body:
   - type: textarea
-    id: problem
+    id: request
     attributes:
-      label: Mathematical or integration problem
-      description: Explain the user need without prescribing a transport-specific API.
+      label: Request
+      description: What should GAPLink do?
     validations:
       required: true
   - type: textarea
-    id: capability
+    id: gap
     attributes:
-      label: GAP capability
-      description: Name the relevant GAP operation or package and link authoritative documentation.
+      label: GAP reference
+      description: Link the relevant GAP function or package, if known.
     validations:
       required: true
   - type: textarea
-    id: contract
+    id: notes
     attributes:
-      label: Proposed Wolfram Language contract
-      description: Describe inputs, outputs, failures, and behavior when GAP is unavailable.
-    validations:
-      required: true
-  - type: textarea
-    id: constraints
-    attributes:
-      label: Version, package, platform, licensing, or security constraints
+      label: Notes
+      description: Add version, package, platform, or API details.

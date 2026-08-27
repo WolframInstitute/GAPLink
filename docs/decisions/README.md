@@ -1,15 +1,14 @@
 # Architecture decision records
 
-Architecture decision records document choices that are expensive to reverse or affect the
-public compatibility contract.
+Use an ADR for choices that affect the public API, packaging, security, or licensing.
 
-Create records from `0000-template.md`, assign the next four-digit number, and keep accepted
-records immutable. If a decision changes, add a new record that supersedes the old one.
+Copy `0000-template.md` and assign the next number. Do not edit accepted records; replace them
+with a new one.
 
-The first expected records are:
+Expected ADRs:
 
-1. GAP discovery, installation, and distribution policy;
-2. reference and optional transports;
-3. value conversion and opaque-handle lifetime;
-4. error, timeout, cancellation, and recovery semantics;
-5. supported GAP versions, packages, and platforms.
+- GAP discovery and distribution
+- backend choice
+- value conversion and object handles
+- errors and timeouts
+- supported versions and platforms

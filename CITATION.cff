@@ -3,8 +3,7 @@ message: If you use this software, please cite it as below.
 type: software
 title: GAPLink
 abstract: >-
-  A Wolfram Language paclet for low-level interoperability with the GAP system for
-  computational discrete algebra.
+  A Wolfram Language interface to GAP.
 authors:
   - name: Wolfram Institute
     website: https://wolframinstitute.org

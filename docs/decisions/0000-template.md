@@ -6,21 +6,20 @@
 
 ## Context
 
-What problem requires a durable decision? Include constraints, evidence, and relevant upstream
-versions or licenses.
+What needs to be decided, and why?
 
 ## Decision
 
-State the chosen behavior precisely enough to guide implementation and tests.
+What did we choose?
 
 ## Alternatives considered
 
-Describe credible alternatives and why they were not selected.
+What else did we consider?
 
 ## Consequences
 
-Record compatibility, security, performance, packaging, licensing, and maintenance effects.
+What changes because of this decision?
 
 ## Validation
 
-List the tests or feasibility evidence needed before this record can be accepted.
+How will we verify it?

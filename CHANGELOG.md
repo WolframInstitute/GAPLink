@@ -6,8 +6,10 @@ Notable changes are listed here.
 
 ### Added
 
-- Established the GAPLink paclet repository foundation.
-- Added local validation, lint, test, build, and archive-verification commands.
-- Added GitHub Actions continuous integration and development guardrails.
+- Added the initial paclet, development commands, and CI.
+
+### Changed
+
+- Simplified the project documentation.
 
 [Unreleased]: https://github.com/WolframInstitute/GAPLink/commits/main

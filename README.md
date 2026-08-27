@@ -2,42 +2,15 @@
 
 [![CI](https://github.com/WolframInstitute/GAPLink/actions/workflows/ci.yml/badge.svg)](https://github.com/WolframInstitute/GAPLink/actions/workflows/ci.yml)
 
-GAPLink is a Wolfram Language paclet for low-level interoperability with
-[GAP](https://www.gap-system.org/), the system for computational discrete algebra.
+GAPLink connects Wolfram Language to [GAP](https://www.gap-system.org/).
+PureMath is one possible user, but GAPLink is designed for any Wolfram Language project.
 
-> [!IMPORTANT]
-> This repository currently contains the paclet and continuous-integration foundation only.
-> It does not start GAP, evaluate GAP code, bundle GAP, or expose a public API yet.
-
-## Design boundary
-
-GAPLink will own sessions, value conversion, foreign-object lifetime, and transport errors.
-Domain paclets such as PureMath will own mathematical names, objects, and semantics.
-
-```text
-PureMath and other domain paclets
-              |
-              v
-           GAPLink
-              |
-              v
-       GAP and GAP packages
-```
-
-Loading GAPLink must remain side-effect free: it must not install software, start a process,
-load a native library, or access the network. External work will begin only after an explicit
-API call.
-
-The initial architecture constraints and deferred decisions are recorded in
-[docs/architecture.md](docs/architecture.md) and [docs/decisions](docs/decisions).
+The project currently contains a loadable paclet and CI. It does not call or bundle GAP yet.
 
 ## Requirements
 
 - Wolfram Language 15.0 or later
 - `wolframscript`, Git, and `make` for development
-
-GAP is intentionally not required by the foundation tests. Supported GAP versions and
-installation models will be decided before the first transport implementation.
 
 ## Load from source
 
@@ -46,24 +19,21 @@ PacletDirectoryLoad["/path/to/GAPLink/GAPLink"]
 Needs["WolframInstitute`GAPLink`"]
 ```
 
-The context currently exports no symbols. A successful load verifies only that the paclet
-foundation is intact.
+There are no public functions yet.
 
 ## Development
 
 ```bash
 make check   # metadata, source lint, and source load
 make test    # Wolfram Language tests
-make build   # build/GAPLink archive
-make verify  # load and inspect the built archive
+make build   # build the paclet archive
+make verify  # load the built archive
 make all     # all of the above
 ```
 
-See [CONTRIBUTING.md](CONTRIBUTING.md) for repository conventions and CI setup.
+See [CONTRIBUTING.md](CONTRIBUTING.md) for the development workflow and
+[docs/architecture.md](docs/architecture.md) for the main design rules.
 
 ## License
 
-The GAPLink foundation is available under the [MIT License](LICENSE). GAP is a separate
-GPL-licensed project and is not included here. Any future vendoring, native linkage, or package
-distribution must first receive a recorded licensing decision and update
-[THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
+GAPLink uses the [MIT License](LICENSE). GAP is separate and uses the GPL.

@@ -1,5 +1,5 @@
 name: Bug report
-description: Report reproducible incorrect behavior in GAPLink.
+description: Report a GAPLink bug.
 title: "bug: "
 labels: [bug]
 body:
@@ -7,35 +7,16 @@ body:
     attributes:
       value: Do not report security vulnerabilities here; use the private advisory link.
   - type: input
-    id: gaplink-version
+    id: versions
     attributes:
-      label: GAPLink version or commit
-    validations:
-      required: true
-  - type: input
-    id: wolfram-version
-    attributes:
-      label: Wolfram Language version and SystemID
-    validations:
-      required: true
-  - type: input
-    id: gap-version
-    attributes:
-      label: GAP version and packages
-      description: Write "not applicable" for foundation-only failures.
-    validations:
-      required: true
-  - type: input
-    id: transport
-    attributes:
-      label: Transport
-      description: Write "not applicable" if no GAP transport was engaged.
+      label: Versions
+      description: GAPLink, Wolfram Language, GAP, and operating system.
     validations:
       required: true
   - type: textarea
     id: reproducer
     attributes:
-      label: Minimal reproducer
+      label: Example
       render: wolfram
     validations:
       required: true
@@ -48,6 +29,6 @@ body:
   - type: textarea
     id: actual
     attributes:
-      label: Actual behavior and messages
+      label: Actual behavior
     validations:
       required: true
