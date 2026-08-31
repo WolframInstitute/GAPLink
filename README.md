@@ -28,10 +28,14 @@ session["Version"]
 session["Packages"]
 GAPPackageAvailableQ[session, "example"]
 LoadGAPPackage[session, "example"]
+session["LoadedPackages"]
 GAPCall[session, "Sum", {1, 2, 3}]
 GAPEvaluate[session, "Size(SymmetricGroup(4));"]
 DeleteObject[session]
 ```
+
+`session["Packages"]` lists packages GAP found at startup.
+`session["LoadedPackages"]` reports the package versions in use.
 
 To choose the GAP program:
 
@@ -65,10 +69,12 @@ The results should be `55` and `{2/3, True, "hello"}`.
 GAPPackageAvailableQ[session, "example"]
 package = LoadGAPPackage[session, "example"]
 GAPCall[session, "IsPackageLoaded", "example"]
+session["LoadedPackages"]
 ```
 
-The first and last results should be `True`. `package` contains the package version.
-GAPLink loads packages already available to GAP. It does not install them.
+The first and third results should be `True`. `package` contains the requested package
+version. `session["LoadedPackages"]` contains all loaded package versions, including
+dependencies. GAPLink loads packages already available to GAP. It does not install them.
 
 ```wolfram
 GAPEvaluate[session, "1 + 2;"]

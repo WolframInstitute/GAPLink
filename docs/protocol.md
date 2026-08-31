@@ -90,6 +90,7 @@ A request payload is a record with an `"Operation"` field.
 | `"Hello"` | none |
 | `"Call"` | `"Name"`, `"Arguments"`, `"ReturnType"` |
 | `"Evaluate"` | `"Code"`, `"ReturnType"` |
+| `"LoadedPackages"` | none |
 | `"Normal"` | `"Object"` |
 | `"Release"` | `"Objects"` |
 | `"Close"` | none |
@@ -98,6 +99,8 @@ A request payload is a record with an `"Operation"` field.
 
 `Evaluate` reads complete GAP commands and returns the last value. It returns `Null` when
 the code has no value.
+
+`LoadedPackages` returns package names and versions from the running GAP session.
 
 Object IDs belong to one session. `Normal` asks GAP to copy an object. `Release` removes
 object IDs that are no longer needed.

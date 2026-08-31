@@ -18,7 +18,8 @@ GAPSession::usage = "GAPSession[...] represents a GAP session. session[\"propert
 
 $gapLinkSessions = <||>;
 $gapSessionProperties = {
-    "Status", "Executable", "Version", "Packages", "Backend", "Properties"
+    "Status", "Executable", "Version", "Packages", "LoadedPackages",
+    "Backend", "Properties"
 };
 
 gapSessionFailure[tag_String, message_String, data_: <||>] := Failure[
@@ -138,9 +139,33 @@ gapSessionProperty[state_, "Backend"] := state["Backend"]
 gapSessionProperty[_, "Properties"] := $gapSessionProperties
 gapSessionProperty[_, property_] := Missing["UnknownProperty", property]
 
+gapSessionLoadedPackages[session_GAPSession] := Module[
+    {packages, payload, response},
+    response = gapLinkRunSessionRequest[
+        session, <|"Operation" -> "LoadedPackages"|>, 5
+    ];
+    If[FailureQ[response], Return[response]];
+    payload = Replace[response["Payload"], Except[_Association] -> <||>];
+    packages = Lookup[payload, "Result", None];
+    If[
+        Lookup[payload, "Status", None] === "OK" &&
+            AssociationQ[packages] &&
+            MatchQ[Normal[packages], {(_String -> _String) ...}],
+        packages,
+        gapLinkStopSession[session];
+        gapSessionFailure[
+            "GAPProtocolError", "GAP returned an invalid response."
+        ]
+    ]
+]
+
 (session_GAPSession)[property_String] := Module[
     {state = gapLinkSessionData[session]},
-    If[FailureQ[state], state, gapSessionProperty[state, property]]
+    If[FailureQ[state], Return[state]];
+    If[property === "LoadedPackages",
+        gapSessionLoadedPackages[session],
+        gapSessionProperty[state, property]
+    ]
 ]
 
 gapCloseProcess[process_ProcessObject] := If[

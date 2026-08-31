@@ -16,6 +16,7 @@ Accepted:
 - [0007: Supported versions and systems](0007-supported-versions-and-systems.md)
 - [0008: Process protocol and output](0008-process-protocol-and-output.md)
 - [0009: GAP packages](0009-gap-packages.md)
+- [0010: Loaded packages](0010-loaded-packages.md)
 
 Next:
 

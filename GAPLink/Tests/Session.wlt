@@ -52,7 +52,10 @@ VerificationTest[
         "4.15.1",
         {"GAPDoc", "primgrp"},
         "Process",
-        {"Status", "Executable", "Version", "Packages", "Backend", "Properties"},
+        {
+            "Status", "Executable", "Version", "Packages",
+            "LoadedPackages", "Backend", "Properties"
+        },
         Missing["UnknownProperty", "Other"]
     },
     TestID -> "Read-Session-Properties"
@@ -62,6 +65,14 @@ VerificationTest[
     FailureQ[GAPSession["missing"]["Status"]],
     True,
     TestID -> "Reject-Unknown-Session"
+]
+
+VerificationTest[
+    Module[{session = createSession[fakeState]},
+        MatchQ[session["LoadedPackages"], Failure["GAPInvalidSession", _]]
+    ],
+    True,
+    TestID -> "Reject-Loaded-Packages-Without-GAP"
 ]
 
 VerificationTest[

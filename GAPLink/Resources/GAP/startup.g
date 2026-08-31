@@ -658,6 +658,18 @@ GAPLinkRelease := function(request, state)
     return GAPLinkOK("n0:");
 end;
 
+GAPLinkLoadedPackages := function(state)
+    local entry, name, packages;
+    packages := rec();
+    for name in RecNames(GAPInfo.PackagesLoaded) do
+        entry := GAPInfo.PackagesLoaded.(name);
+        if entry[4] = true then
+            packages.(entry[3]) := entry[2];
+        fi;
+    od;
+    return GAPLinkValueResponse(packages, "Automatic", state);
+end;
+
 GAPLinkHello := function()
     local build, hpc, packages, processor, result, system;
 
@@ -725,6 +737,9 @@ GAPLinkMain := function()
         elif next > 1 and GAPLinkRequestQ(decoded, ["Operation"]) and
              decoded.Operation = "Close" then
             response := GAPLinkOK("n0:");
+        elif next > 1 and GAPLinkRequestQ(decoded, ["Operation"]) and
+             decoded.Operation = "LoadedPackages" then
+            response := GAPLinkLoadedPackages(state);
         elif next > 1 and IsRecord(decoded) and IsBound(decoded.Operation) and
              decoded.Operation = "Call" then
             response := GAPLinkCall(decoded, state);

@@ -13,13 +13,14 @@ expectedVersion = Replace[
 ];
 
 VerificationTest[
-    Module[{closed, details, process, session, state, valid},
+    Module[{closed, details, loaded, process, session, state, valid},
         session = StartGAPSession["Executable" -> gapExecutable];
         If[FailureQ[session], Print["ERROR: ", session]; Return[False]];
         WithCleanup[
             state = sessionData[session];
             details = state["Info"];
             process = state["Process"];
+            loaded = session["LoadedPackages"];
             Print[
                 "  GAP ", session["Version"],
                 If[TrueQ[details["Tested"]], "", " (untested)"], " | ",
@@ -30,6 +31,8 @@ VerificationTest[
                 details["ProtocolVersion"] === 1 &&
                 MemberQ[{True, False}, details["Tested"]] &&
                 MatchQ[session["Packages"], {___String}] &&
+                AssociationQ[loaded] &&
+                MatchQ[Normal[loaded], {(_String -> _String) ...}] &&
                 (expectedVersion === Automatic ||
                     session["Version"] === expectedVersion);
             DeleteObject[session];
@@ -205,10 +208,15 @@ VerificationTest[
 
 VerificationTest[
     Module[
-        {available, exact, loaded, missing, missingLoad, second, session},
+        {
+            afterCall, afterEvaluate, afterWrapper, available, before,
+            called, evaluated, exact, loaded, missing, missingLoad, second,
+            session
+        },
         session = StartGAPSession["Executable" -> gapExecutable];
         If[FailureQ[session], Print["ERROR: ", session]; Return[False]];
         WithCleanup[
+            before = session["LoadedPackages"];
             available = GAPPackageAvailableQ[session, "example"];
             missing = GAPPackageAvailableQ[
                 session, "GAPLinkMissingPackage"
@@ -217,6 +225,17 @@ VerificationTest[
                 session, "GAPLinkMissingPackage"
             ];
             loaded = LoadGAPPackage[session, "example"];
+            afterWrapper = session["LoadedPackages"];
+            called = GAPCall[
+                session, "LoadPackage", "json", False,
+                "Output" -> "Discard"
+            ];
+            afterCall = session["LoadedPackages"];
+            evaluated = GAPEvaluate[
+                session, "LoadPackage(\"utils\", false);",
+                "Output" -> "Discard"
+            ];
+            afterEvaluate = session["LoadedPackages"];
             exact = If[
                 AssociationQ[loaded],
                 GAPPackageAvailableQ[
@@ -232,6 +251,10 @@ VerificationTest[
                 missingLoad["Package"] === "GAPLinkMissingPackage" &&
                 MatchQ[loaded,
                     <|"Name" -> "example", "Version" -> _String|>] &&
+                !KeyExistsQ[before, "Example"] &&
+                afterWrapper["Example"] === loaded["Version"] &&
+                called === True && StringQ[afterCall["json"]] &&
+                evaluated === True && StringQ[afterEvaluate["utils"]] &&
                 second === loaded && exact === True &&
                 GAPCall[session, "IsPackageLoaded", "example"] === True &&
                 session["Status"] === "Ready",
