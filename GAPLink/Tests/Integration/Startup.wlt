@@ -145,3 +145,60 @@ VerificationTest[
     True,
     TestID -> "Use-GAP-Objects"
 ]
+
+VerificationTest[
+    Module[
+        {
+            afterError, captured, empty, error, forced, group, multiple,
+            session, syntax, value
+        },
+        session = StartGAPSession["Executable" -> gapExecutable];
+        If[FailureQ[session], Print["ERROR: ", session]; Return[False]];
+        WithCleanup[
+            value = GAPEvaluate[
+                session,
+                "GAPLinkIntegrationValue := 4;;\n" <>
+                    "GAPLinkIntegrationValue ^ 2;"
+            ];
+            multiple = GAPEvaluate[session, "1 + 1;\n3 + 4;"];
+            empty = GAPEvaluate[session, "# no value\n"];
+            captured = GAPEvaluate[
+                session, "Print(\"hello\");", "Output" -> "Capture"
+            ];
+            group = GAPEvaluate[session, "SymmetricGroup(4);"];
+            forced = GAPEvaluate[
+                session, "42;", "ReturnType" -> "Object"
+            ];
+            error = GAPEvaluate[
+                session, "1 / 0;", "Output" -> "Capture"
+            ];
+            syntax = GAPEvaluate[
+                session, "1 + ;", "Output" -> "Capture"
+            ];
+            afterError = GAPEvaluate[session, "6 * 7;"];
+            GAPEvaluate[
+                session, "Unbind(GAPLinkIntegrationValue);",
+                "Output" -> "Discard"
+            ];
+            value === 16 && multiple === 7 && empty === Null &&
+                captured === <|
+                    "Result" -> Null,
+                    "StandardOutput" -> "hello",
+                    "StandardError" -> ""
+                |> &&
+                Head[group] === GAPObject &&
+                GAPCall[session, "Size", group] === 24 &&
+                Head[forced] === GAPObject && Normal[forced] === 42 &&
+                MatchQ[error, Failure["GAPError", _]] &&
+                StringContainsQ[error["StandardError"], "Error"] &&
+                MatchQ[syntax, Failure["GAPError", _]] &&
+                MatchQ[syntax["StandardError"], _String | _ByteArray] &&
+                !MemberQ[{"", ByteArray[{}]}, syntax["StandardError"]] &&
+                afterError === 42 && session["Status"] === "Ready",
+            DeleteObject /@ Cases[{group, forced}, _GAPObject];
+            DeleteObject[session]
+        ]
+    ],
+    True,
+    TestID -> "Evaluate-GAP-Code"
+]

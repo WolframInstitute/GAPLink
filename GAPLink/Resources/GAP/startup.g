@@ -536,8 +536,23 @@ GAPLinkRequestQ := function(request, names)
     return IsRecord(request) and Set(RecNames(request)) = Set(names);
 end;
 
+GAPLinkValueResponse := function(value, returnType, state)
+    local encoded;
+    if returnType = "Object" then
+        encoded := GAPLinkStore(state, value);
+    else
+        encoded := GAPLinkEncode(value, 0, state, true);
+    fi;
+    if encoded = fail then
+        return GAPLinkError(
+            "GAPUnsupportedValue", "The GAP result cannot be converted."
+        );
+    fi;
+    return GAPLinkOK(encoded);
+end;
+
 GAPLinkCall := function(request, state)
-    local arguments, caught, encoded, func;
+    local arguments, caught, func;
     if not GAPLinkRequestQ(
         request, ["Arguments", "Name", "Operation", "ReturnType"]
     ) or request.Operation <> "Call" or
@@ -563,17 +578,42 @@ GAPLinkCall := function(request, state)
         return GAPLinkError("GAPError", "GAP reported an error.");
     elif Length(caught) = 1 then
         return GAPLinkOK("n0:");
-    elif request.ReturnType = "Object" then
-        encoded := GAPLinkStore(state, caught[2]);
-    else
-        encoded := GAPLinkEncode(caught[2], 0, state, true);
     fi;
-    if encoded = fail then
-        return GAPLinkError(
-            "GAPUnsupportedValue", "The GAP result cannot be converted."
-        );
+    return GAPLinkValueResponse(caught[2], request.ReturnType, state);
+end;
+
+GAPLinkEvaluate := function(request, state)
+    local caught, command, commands, hasResult, result, stream;
+    if not GAPLinkRequestQ(
+        request, ["Code", "Operation", "ReturnType"]
+    ) or request.Operation <> "Evaluate" or not IsString(request.Code) or
+       not (request.ReturnType in ["Automatic", "Object"]) then
+        return fail;
     fi;
-    return GAPLinkOK(encoded);
+    stream := InputTextString(request.Code);
+    caught := CALL_WITH_CATCH(
+        READ_ALL_COMMANDS, [stream, false, false, false]
+    );
+    CloseStream(stream);
+    if caught[1] = false or Length(caught) < 2 or
+       not IsList(caught[2]) then
+        return GAPLinkError("GAPError", "GAP reported an error.");
+    fi;
+    commands := caught[2];
+    hasResult := false;
+    for command in commands do
+        if not IsList(command) or Length(command) = 0 or
+           command[1] <> true then
+            return GAPLinkError("GAPError", "GAP reported an error.");
+        elif IsBound(command[2]) then
+            result := command[2];
+            hasResult := true;
+        fi;
+    od;
+    if not hasResult then
+        return GAPLinkOK("n0:");
+    fi;
+    return GAPLinkValueResponse(result, request.ReturnType, state);
 end;
 
 GAPLinkNormal := function(request, state)
@@ -688,6 +728,9 @@ GAPLinkMain := function()
         elif next > 1 and IsRecord(decoded) and IsBound(decoded.Operation) and
              decoded.Operation = "Call" then
             response := GAPLinkCall(decoded, state);
+        elif next > 1 and IsRecord(decoded) and IsBound(decoded.Operation) and
+             decoded.Operation = "Evaluate" then
+            response := GAPLinkEvaluate(decoded, state);
         elif next > 1 and IsRecord(decoded) and IsBound(decoded.Operation) and
              decoded.Operation = "Normal" then
             response := GAPLinkNormal(decoded, state);

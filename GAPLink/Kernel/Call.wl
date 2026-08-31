@@ -2,6 +2,10 @@
 
 PackageExported[GAPCall]
 
+PackageScoped["gapLinkBytes"]
+PackageScoped["gapLinkOutput"]
+PackageScoped["gapLinkRequestOptions"]
+
 GAPCall::usage = "GAPCall[session, name, args] calls a named GAP function."
 
 Options[GAPCall] = {
@@ -10,7 +14,7 @@ Options[GAPCall] = {
     "ReturnType" -> "Automatic"
 };
 
-gapCallBytes[bytes_ByteArray] := Module[{text},
+gapLinkBytes[bytes_ByteArray] := Module[{text},
     text = Quiet @ Check[FromCharacterCode[Normal[bytes], "UTF-8"], $Failed];
     If[
         StringQ[text] && ToCharacterCode[text, "UTF-8"] === Normal[bytes],
@@ -19,26 +23,26 @@ gapCallBytes[bytes_ByteArray] := Module[{text},
     ]
 ]
 
-gapWriteBytes[ByteArray[{}], _] := Null
-gapWriteBytes[bytes_ByteArray, streams_] := Replace[
-    gapCallBytes[bytes],
+gapLinkWriteBytes[ByteArray[{}], _] := Null
+gapLinkWriteBytes[bytes_ByteArray, streams_] := Replace[
+    gapLinkBytes[bytes],
     {
         text_String :> WriteString[streams, text],
         raw_ByteArray :> Quiet @ BinaryWrite[streams, Normal[raw], "Byte"]
     }
 ]
 
-gapCallOutput[value_, response_Association, "Discard"] := value
+gapLinkOutput[value_, response_Association, "Discard"] := value
 
-gapCallOutput[value_, response_Association, "Print"] := (
-    gapWriteBytes[response["StandardOutput"], $Output];
-    gapWriteBytes[response["StandardError"], $Messages];
+gapLinkOutput[value_, response_Association, "Print"] := (
+    gapLinkWriteBytes[response["StandardOutput"], $Output];
+    gapLinkWriteBytes[response["StandardError"], $Messages];
     value
 )
 
-gapCallOutput[value_, response_Association, "Capture"] := Module[
-    {output = gapCallBytes[response["StandardOutput"]],
-     error = gapCallBytes[response["StandardError"]]},
+gapLinkOutput[value_, response_Association, "Capture"] := Module[
+    {output = gapLinkBytes[response["StandardOutput"]],
+     error = gapLinkBytes[response["StandardError"]]},
     If[FailureQ[value],
         value /. Failure[tag_, data_] :> Failure[
             tag,
@@ -60,7 +64,7 @@ gapCallResponse[payload_, name_String, error_] := Module[{message, status},
     Switch[status,
         "GAPError", gapSessionFailure[
             status, "GAP reported an error.",
-            <|"Function" -> name, "GAPMessage" -> gapCallBytes[error]|>
+            <|"Function" -> name, "GAPMessage" -> gapLinkBytes[error]|>
         ],
         "GAPFunctionNotFound", gapSessionFailure[
             status, message, <|"Function" -> name|>
@@ -77,29 +81,35 @@ gapCallResponse[payload_, name_String, error_] := Module[{message, status},
     ]
 ]
 
+gapLinkRequestOptions[head_Symbol, rules_List] := Module[{bad, values},
+    bad = SelectFirst[
+        rules,
+        !MemberQ[First /@ Options[head], First[#]] &,
+        None
+    ];
+    If[bad =!= None, Return[gapOptionFailure[First[bad]]]];
+    values = OptionValue[head, rules, #] & /@
+        {"Output", "ReturnType", TimeConstraint};
+    Which[
+        !gapTimeConstraintQ[values[[3]]], gapOptionFailure[TimeConstraint],
+        !MemberQ[{"Print", "Capture", "Discard"}, values[[1]]],
+            gapOptionFailure["Output"],
+        !MemberQ[{"Automatic", "Object"}, values[[2]]],
+            gapOptionFailure["ReturnType"],
+        True, values
+    ]
+]
+
 GAPCall[
     session_GAPSession, name_String,
     arguments : Longest[Except[_Rule | _RuleDelayed]...],
     opts : OptionsPattern[]
 ] := Module[
-    {args = {arguments}, bad, output, payload, response, result, returnType,
-     time},
-    bad = SelectFirst[
-        {opts},
-        !MemberQ[First /@ Options[GAPCall], First[#]] &,
-        None
-    ];
-    If[bad =!= None, Return[gapOptionFailure[First[bad]]]];
-    output = OptionValue["Output"];
-    returnType = OptionValue["ReturnType"];
-    time = OptionValue[TimeConstraint];
-    If[!gapTimeConstraintQ[time], Return[gapOptionFailure[TimeConstraint]]];
-    If[!MemberQ[{"Print", "Capture", "Discard"}, output],
-        Return[gapOptionFailure["Output"]]
-    ];
-    If[!MemberQ[{"Automatic", "Object"}, returnType],
-        Return[gapOptionFailure["ReturnType"]]
-    ];
+    {args = {arguments}, options, output, payload, response, result,
+     returnType, time},
+    options = gapLinkRequestOptions[GAPCall, {opts}];
+    If[FailureQ[options], Return[options]];
+    {output, returnType, time} = options;
     args = gapLinkObjectArguments[session, args];
     If[FailureQ[args], Return[args]];
     If[!FreeQ[args, Null], Return @ gapSessionFailure[
@@ -121,7 +131,7 @@ GAPCall[
         gapLinkStopSession[session]
     ];
     If[!FailureQ[result], result = gapLinkImportObjects[session, result]];
-    gapCallOutput[result, response, output]
+    gapLinkOutput[result, response, output]
 ]
 
 GAPCall[_GAPSession, _, ___] := gapSessionFailure[

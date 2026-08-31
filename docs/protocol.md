@@ -96,6 +96,9 @@ A request payload is a record with an `"Operation"` field.
 
 `"ReturnType"` is `"Automatic"` or `"Object"`.
 
+`Evaluate` reads complete GAP commands and returns the last value. It returns `Null` when
+the code has no value.
+
 Object IDs belong to one session. `Normal` asks GAP to copy an object. `Release` removes
 object IDs that are no longer needed.
 

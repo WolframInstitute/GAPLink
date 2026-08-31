@@ -5,7 +5,7 @@
 GAPLink connects Wolfram Language to [GAP](https://www.gap-system.org/).
 PureMath is one possible user, but GAPLink is designed for any Wolfram Language project.
 
-The project can start GAP and call named GAP functions.
+The project can start GAP, call functions, and run GAP code.
 
 ## Requirements
 
@@ -27,6 +27,7 @@ session = StartGAPSession[]
 session["Version"]
 session["Packages"]
 GAPCall[session, "Sum", {1, 2, 3}]
+GAPEvaluate[session, "Size(SymmetricGroup(4));"]
 DeleteObject[session]
 ```
 
@@ -59,7 +60,18 @@ GAPCall[session, "IdFunc", {2/3, True, "hello"}]
 The results should be `55` and `{2/3, True, "hello"}`.
 
 ```wolfram
-group = GAPCall[session, "SymmetricGroup", 4]
+GAPEvaluate[session, "1 + 2;"]
+GAPEvaluate[
+  session,
+  "GAPLinkNotebookValue := 4;;\nGAPLinkNotebookValue ^ 2;"
+]
+```
+
+The results should be `3` and `16`. GAP commands must end with `;` or `;;`.
+`GAPEvaluate` is not a sandbox. Run code you trust.
+
+```wolfram
+group = GAPEvaluate[session, "SymmetricGroup(4);"]
 GAPCall[session, "Size", group]
 
 value = GAPCall[
@@ -76,6 +88,11 @@ The group stays in GAP. The size and copied value should be `24` and `42`.
 
 ```wolfram
 GAPCall[session, "Print", "hello", "Output" -> "Capture"]
+GAPEvaluate[
+  session,
+  "Unbind(GAPLinkNotebookValue);",
+  "Output" -> "Discard"
+]
 DeleteObject[group]
 DeleteObject[session]
 session["Status"]

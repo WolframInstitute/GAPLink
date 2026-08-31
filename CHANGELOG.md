@@ -10,6 +10,7 @@ Notable changes are listed here.
 - Added live tests for GAP 4.14.0, 4.15.1, and 4.16.1.
 - Added `StartGAPSession` and `GAPSession`.
 - Added `GAPCall` for named functions and basic values.
+- Added `GAPEvaluate` for GAP code.
 - Added `GAPObject` for values kept in GAP.
 - Fixed direct empty-list arguments to `GAPCall`.
 - Added a persistent request loop and clean session shutdown.
