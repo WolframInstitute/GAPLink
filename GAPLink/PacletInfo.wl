@@ -35,6 +35,11 @@ PacletObject[<|
             "Resources" -> {{"GAPStartup", "GAP/startup.g"}}
         },
         {
+            "Documentation",
+            "Root" -> "Documentation",
+            "Language" -> "English"
+        },
+        {
             "Test",
             "Root" -> "Tests",
             "Method" -> "Experimental-v1"

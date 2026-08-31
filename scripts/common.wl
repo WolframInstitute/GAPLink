@@ -62,7 +62,7 @@ runTests[files_List] := Module[{reports, passed, failed, runtimeFailures},
 ];
 
 lintFiles[files_List] := Module[{issueCount = 0, issues, errors},
-    Needs["CodeInspector`"];
+    Quiet[Needs["CodeInspector`"], {CodeInspector`Utils`format::shdw}];
     Scan[
         Function[file,
             If[!FileExistsQ[file], scriptFail["File not found: ", file]];

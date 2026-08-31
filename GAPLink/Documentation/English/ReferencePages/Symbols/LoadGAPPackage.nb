@@ -1,0 +1,92 @@
+(* Content-type: application/vnd.wolfram.mathematica *)
+
+Notebook[{
+    Cell[CellGroupData[{
+        Cell["LoadGAPPackage", "ObjectName"],
+        Cell[TextData[{
+            Cell["   ", "ModInfo"],
+            Cell[BoxData[
+                RowBox[{"LoadGAPPackage", "[",
+                    RowBox[{StyleBox["session", "TI"], ",", " ",
+                        StyleBox["name", "TI"]}], "]"}]
+            ], "InlineFormula"],
+            " loads a GAP package and returns its name and version."
+        }], "Usage"],
+        Cell["The package must already be available to GAP. GAPLink does not install it.", "Notes"],
+        Cell["The following options can be given:", "Notes"],
+        Cell[BoxData[GridBox[{
+            {Cell["      ", "TableRowIcon"],
+                Cell[BoxData["TimeConstraint"], "TableText"],
+                Cell[BoxData["Infinity"], "TableText"],
+                Cell["Maximum load time in seconds", "TableText"]},
+            {Cell["      ", "TableRowIcon"],
+                Cell[BoxData["\"Version\""], "TableText"],
+                Cell[BoxData["Automatic"], "TableText"],
+                Cell["Compatible package version", "TableText"]}
+        }]], "3ColumnTableMod"],
+        Cell["Loading the same package again is safe. Dependencies appear in session[\"LoadedPackages\"].", "Notes"]
+    }, Open]],
+    Cell[CellGroupData[{
+        Cell["See Also", "SeeAlsoSection"],
+        Cell[TextData[{
+            Cell[BoxData[
+                ButtonBox["GAPPackageAvailableQ", BaseStyle -> "Link",
+                    ButtonData -> "paclet:WolframInstitute/GAPLink/ref/GAPPackageAvailableQ"]
+            ], "InlineSeeAlsoFunction"],
+            StyleBox[" \[FilledVerySmallSquare] ", "InlineSeparator"],
+            Cell[BoxData[
+                ButtonBox["GAPSession", BaseStyle -> "Link",
+                    ButtonData -> "paclet:WolframInstitute/GAPLink/ref/GAPSession"]
+            ], "InlineSeeAlsoFunction"],
+            StyleBox[" \[FilledVerySmallSquare] ", "InlineSeparator"],
+            Cell[BoxData[
+                ButtonBox["GAPCall", BaseStyle -> "Link",
+                    ButtonData -> "paclet:WolframInstitute/GAPLink/ref/GAPCall"]
+            ], "InlineSeeAlsoFunction"]
+        }], "SeeAlso"]
+    }, Open]],
+    Cell[CellGroupData[{
+        Cell["Examples Initialization", "ExamplesInitializationSection"],
+        Cell[BoxData[
+            RowBox[{"Needs", "[", "\"WolframInstitute`GAPLink`\"", "]"}]
+        ], "ExampleInitialization"]
+    }, Open]],
+    Cell[CellGroupData[{
+        Cell["Basic Examples", "PrimaryExamplesSection"],
+        Cell["Load a package included with GAP:", "ExampleText"],
+        Cell[BoxData[
+            RowBox[{"session", "=", RowBox[{"StartGAPSession", "[", "]"}]}]
+        ], "Input"],
+        Cell[BoxData[
+            RowBox[{"LoadGAPPackage", "[",
+                RowBox[{"session", ",", "\"example\""}], "]"}]
+        ], "Input"],
+        Cell[BoxData[
+            RowBox[{"session", "[", "\"LoadedPackages\"", "]"}]
+        ], "Input"],
+        Cell[BoxData[
+            RowBox[{"DeleteObject", "[", "session", "]"}]
+        ], "Input"]
+    }, Open]],
+    Cell[CellGroupData[{
+        Cell["Metadata", "MetadataSection"],
+        Cell["New in: 0.1", "History"],
+        Cell[CellGroupData[{
+            Cell["Categorization", "CategorizationSection"],
+            Cell["Symbol", "Categorization", CellLabel -> "Entity Type"],
+            Cell["WolframInstitute/GAPLink", "Categorization",
+                CellLabel -> "Paclet Name"],
+            Cell["WolframInstitute`GAPLink`", "Categorization",
+                CellLabel -> "Context"],
+            Cell["WolframInstitute/GAPLink/ref/LoadGAPPackage", "Categorization",
+                CellLabel -> "URI"]
+        }, Closed]]
+    }, Open]]
+},
+    CellContext -> "Global`",
+    TaggingRules -> <|"Paclet" -> "WolframInstitute/GAPLink"|>,
+    StyleDefinitions -> FrontEnd`FileName[
+        {"Wolfram"}, "FunctionPageStylesExt.nb",
+        CharacterEncoding -> "UTF-8"
+    ]
+]

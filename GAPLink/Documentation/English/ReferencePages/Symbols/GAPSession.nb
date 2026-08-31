@@ -1,0 +1,92 @@
+(* Content-type: application/vnd.wolfram.mathematica *)
+
+Notebook[{
+    Cell[CellGroupData[{
+        Cell["GAPSession", "ObjectName"],
+        Cell[TextData[{
+            Cell["   ", "ModInfo"],
+            Cell[BoxData[
+                RowBox[{"GAPSession", "[", "...", "]"}]
+            ], "InlineFormula"],
+            " represents a GAP session.",
+            "\[LineSeparator]",
+            Cell["   ", "ModInfo"],
+            Cell[BoxData[
+                RowBox[{StyleBox["session", "TI"], "[", "\"property\"", "]"}]
+            ], "InlineFormula"],
+            " reads a session property."
+        }], "Usage"],
+        Cell["StartGAPSession creates GAPSession objects.", "Notes"],
+        Cell["Properties are \"Status\", \"Executable\", \"Version\", \"Packages\", \"LoadedPackages\", \"Backend\", and \"Properties\".", "Notes"],
+        Cell["\"Packages\" lists packages found at startup. \"LoadedPackages\" gives the loaded package names and versions.", "Notes"],
+        Cell[TextData[{
+            "Use ",
+            Cell[BoxData[
+                RowBox[{"DeleteObject", "[", "session", "]"}]
+            ], "InlineFormula"],
+            " to close the session."
+        }], "Notes"]
+    }, Open]],
+    Cell[CellGroupData[{
+        Cell["See Also", "SeeAlsoSection"],
+        Cell[TextData[{
+            Cell[BoxData[
+                ButtonBox["StartGAPSession", BaseStyle -> "Link",
+                    ButtonData -> "paclet:WolframInstitute/GAPLink/ref/StartGAPSession"]
+            ], "InlineSeeAlsoFunction"],
+            StyleBox[" \[FilledVerySmallSquare] ", "InlineSeparator"],
+            Cell[BoxData[
+                ButtonBox["GAPCall", BaseStyle -> "Link",
+                    ButtonData -> "paclet:WolframInstitute/GAPLink/ref/GAPCall"]
+            ], "InlineSeeAlsoFunction"],
+            StyleBox[" \[FilledVerySmallSquare] ", "InlineSeparator"],
+            Cell[BoxData[
+                ButtonBox["LoadGAPPackage", BaseStyle -> "Link",
+                    ButtonData -> "paclet:WolframInstitute/GAPLink/ref/LoadGAPPackage"]
+            ], "InlineSeeAlsoFunction"]
+        }], "SeeAlso"]
+    }, Open]],
+    Cell[CellGroupData[{
+        Cell["Examples Initialization", "ExamplesInitializationSection"],
+        Cell[BoxData[
+            RowBox[{"Needs", "[", "\"WolframInstitute`GAPLink`\"", "]"}]
+        ], "ExampleInitialization"]
+    }, Open]],
+    Cell[CellGroupData[{
+        Cell["Basic Examples", "PrimaryExamplesSection"],
+        Cell["Read session properties:", "ExampleText"],
+        Cell[BoxData[
+            RowBox[{"session", "=", RowBox[{"StartGAPSession", "[", "]"}]}]
+        ], "Input"],
+        Cell[BoxData[
+            RowBox[{"session", "[", "\"Status\"", "]"}]
+        ], "Input"],
+        Cell[BoxData[
+            RowBox[{"session", "[", "\"LoadedPackages\"", "]"}]
+        ], "Input"],
+        Cell[BoxData[
+            RowBox[{"DeleteObject", "[", "session", "]"}]
+        ], "Input"]
+    }, Open]],
+    Cell[CellGroupData[{
+        Cell["Metadata", "MetadataSection"],
+        Cell["New in: 0.1", "History"],
+        Cell[CellGroupData[{
+            Cell["Categorization", "CategorizationSection"],
+            Cell["Symbol", "Categorization", CellLabel -> "Entity Type"],
+            Cell["WolframInstitute/GAPLink", "Categorization",
+                CellLabel -> "Paclet Name"],
+            Cell["WolframInstitute`GAPLink`", "Categorization",
+                CellLabel -> "Context"],
+            Cell["WolframInstitute/GAPLink/ref/GAPSession", "Categorization",
+                CellLabel -> "URI"]
+        }, Closed]]
+    }, Open]]
+},
+    CellContext -> "Global`",
+    TaggingRules -> <|"Paclet" -> "WolframInstitute/GAPLink"|>,
+    StyleDefinitions -> FrontEnd`FileName[
+        {"Wolfram"}, "FunctionPageStylesExt.nb",
+        CharacterEncoding -> "UTF-8"
+    ]
+]

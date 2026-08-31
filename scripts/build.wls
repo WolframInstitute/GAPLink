@@ -24,6 +24,16 @@ Module[{paclet, oldOutputs, result, archive, builtDirectory},
 
     result = PacletBuild[pacletDirectory, buildDirectory];
     scriptRequire[result, MatchQ[_Success], "PacletBuild failed"];
+    scriptRequire[
+        result["DocumentationBuildResults"],
+        Function[results,
+            results =!= {} && AllTrue[
+                results,
+                MatchQ[#, _Success] && TrueQ[#["FailedFilesCount"] === 0] &
+            ]
+        ],
+        "Documentation build failed"
+    ];
     archive = result["PacletArchive"];
     builtDirectory = Replace[result["BuildPacletDirectory"], File[path_] :> path];
     scriptRequire[

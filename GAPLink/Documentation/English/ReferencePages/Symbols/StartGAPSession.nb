@@ -1,0 +1,96 @@
+(* Content-type: application/vnd.wolfram.mathematica *)
+
+Notebook[{
+    Cell[CellGroupData[{
+        Cell["StartGAPSession", "ObjectName"],
+        Cell[TextData[{
+            Cell["   ", "ModInfo"],
+            Cell[BoxData[
+                RowBox[{"StartGAPSession", "[", "]"}]
+            ], "InlineFormula"],
+            " starts GAP and returns a GAPSession.",
+            "\[LineSeparator]",
+            Cell["   ", "ModInfo"],
+            Cell[BoxData[
+                RowBox[{"StartGAPSession", "[",
+                    RowBox[{"\"Executable\"", "->", StyleBox["path", "TI"]}],
+                    "]"}]
+            ], "InlineFormula"],
+            " uses the GAP program at path."
+        }], "Usage"],
+        Cell["GAP must already be installed.", "Notes"],
+        Cell["The following options can be given:", "Notes"],
+        Cell[BoxData[GridBox[{
+            {Cell["      ", "TableRowIcon"],
+                Cell[BoxData["\"Executable\""], "TableText"],
+                Cell[BoxData["Automatic"], "TableText"],
+                Cell["GAP program to use", "TableText"]},
+            {Cell["      ", "TableRowIcon"],
+                Cell[BoxData["TimeConstraint"], "TableText"],
+                Cell[BoxData["30"], "TableText"],
+                Cell["Maximum startup time in seconds", "TableText"]}
+        }]], "3ColumnTableMod"],
+        Cell["Automatic searches GAPLINK_GAP and PATH.", "Notes"],
+        Cell[TextData[{
+            "Use ",
+            Cell[BoxData[
+                RowBox[{"DeleteObject", "[", "session", "]"}]
+            ], "InlineFormula"],
+            " to close the session."
+        }], "Notes"]
+    }, Open]],
+    Cell[CellGroupData[{
+        Cell["See Also", "SeeAlsoSection"],
+        Cell[TextData[{
+            Cell[BoxData[
+                ButtonBox["GAPSession", BaseStyle -> "Link",
+                    ButtonData -> "paclet:WolframInstitute/GAPLink/ref/GAPSession"]
+            ], "InlineSeeAlsoFunction"],
+            StyleBox[" \[FilledVerySmallSquare] ", "InlineSeparator"],
+            Cell[BoxData[
+                ButtonBox["GAPCall", BaseStyle -> "Link",
+                    ButtonData -> "paclet:WolframInstitute/GAPLink/ref/GAPCall"]
+            ], "InlineSeeAlsoFunction"]
+        }], "SeeAlso"]
+    }, Open]],
+    Cell[CellGroupData[{
+        Cell["Examples Initialization", "ExamplesInitializationSection"],
+        Cell[BoxData[
+            RowBox[{"Needs", "[", "\"WolframInstitute`GAPLink`\"", "]"}]
+        ], "ExampleInitialization"]
+    }, Open]],
+    Cell[CellGroupData[{
+        Cell["Basic Examples", "PrimaryExamplesSection"],
+        Cell["Start GAP and read its version:", "ExampleText"],
+        Cell[BoxData[
+            RowBox[{"session", "=", RowBox[{"StartGAPSession", "[", "]"}]}]
+        ], "Input"],
+        Cell[BoxData[
+            RowBox[{"session", "[", "\"Version\"", "]"}]
+        ], "Input"],
+        Cell[BoxData[
+            RowBox[{"DeleteObject", "[", "session", "]"}]
+        ], "Input"]
+    }, Open]],
+    Cell[CellGroupData[{
+        Cell["Metadata", "MetadataSection"],
+        Cell["New in: 0.1", "History"],
+        Cell[CellGroupData[{
+            Cell["Categorization", "CategorizationSection"],
+            Cell["Symbol", "Categorization", CellLabel -> "Entity Type"],
+            Cell["WolframInstitute/GAPLink", "Categorization",
+                CellLabel -> "Paclet Name"],
+            Cell["WolframInstitute`GAPLink`", "Categorization",
+                CellLabel -> "Context"],
+            Cell["WolframInstitute/GAPLink/ref/StartGAPSession", "Categorization",
+                CellLabel -> "URI"]
+        }, Closed]]
+    }, Open]]
+},
+    CellContext -> "Global`",
+    TaggingRules -> <|"Paclet" -> "WolframInstitute/GAPLink"|>,
+    StyleDefinitions -> FrontEnd`FileName[
+        {"Wolfram"}, "FunctionPageStylesExt.nb",
+        CharacterEncoding -> "UTF-8"
+    ]
+]

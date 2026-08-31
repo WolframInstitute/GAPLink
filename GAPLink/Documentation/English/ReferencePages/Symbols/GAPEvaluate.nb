@@ -1,0 +1,100 @@
+(* Content-type: application/vnd.wolfram.mathematica *)
+
+Notebook[{
+    Cell[CellGroupData[{
+        Cell["GAPEvaluate", "ObjectName"],
+        Cell[TextData[{
+            Cell["   ", "ModInfo"],
+            Cell[BoxData[
+                RowBox[{"GAPEvaluate", "[", RowBox[{
+                    StyleBox["session", "TI"], ",", " ",
+                    StyleBox["code", "TI"]}], "]"}]
+            ], "InlineFormula"],
+            " runs GAP code and returns the last result."
+        }], "Usage"],
+        Cell["code is a string. Each GAP command must end with ; or ;;.", "Notes"],
+        Cell["GAPEvaluate is not a sandbox. Run code you trust.", "Notes"],
+        Cell["The following options can be given:", "Notes"],
+        Cell[BoxData[GridBox[{
+            {Cell["      ", "TableRowIcon"],
+                Cell[BoxData["TimeConstraint"], "TableText"],
+                Cell[BoxData["Infinity"], "TableText"],
+                Cell["Maximum evaluation time in seconds", "TableText"]},
+            {Cell["      ", "TableRowIcon"],
+                Cell[BoxData["\"Output\""], "TableText"],
+                Cell[BoxData["\"Print\""], "TableText"],
+                Cell["Print, capture, or discard GAP output", "TableText"]},
+            {Cell["      ", "TableRowIcon"],
+                Cell[BoxData["\"ReturnType\""], "TableText"],
+                Cell[BoxData["\"Automatic\""], "TableText"],
+                Cell["Copy the result or keep it in GAP", "TableText"]}
+        }]], "3ColumnTableMod"],
+        Cell["\"Output\" also accepts \"Capture\" and \"Discard\". \"ReturnType\" also accepts \"Object\".", "Notes"],
+        Cell["Results that cannot be copied become GAPObject values.", "Notes"]
+    }, Open]],
+    Cell[CellGroupData[{
+        Cell["See Also", "SeeAlsoSection"],
+        Cell[TextData[{
+            Cell[BoxData[
+                ButtonBox["GAPCall", BaseStyle -> "Link",
+                    ButtonData -> "paclet:WolframInstitute/GAPLink/ref/GAPCall"]
+            ], "InlineSeeAlsoFunction"],
+            StyleBox[" \[FilledVerySmallSquare] ", "InlineSeparator"],
+            Cell[BoxData[
+                ButtonBox["GAPObject", BaseStyle -> "Link",
+                    ButtonData -> "paclet:WolframInstitute/GAPLink/ref/GAPObject"]
+            ], "InlineSeeAlsoFunction"],
+            StyleBox[" \[FilledVerySmallSquare] ", "InlineSeparator"],
+            Cell[BoxData[
+                ButtonBox["StartGAPSession", BaseStyle -> "Link",
+                    ButtonData -> "paclet:WolframInstitute/GAPLink/ref/StartGAPSession"]
+            ], "InlineSeeAlsoFunction"]
+        }], "SeeAlso"]
+    }, Open]],
+    Cell[CellGroupData[{
+        Cell["Examples Initialization", "ExamplesInitializationSection"],
+        Cell[BoxData[
+            RowBox[{"Needs", "[", "\"WolframInstitute`GAPLink`\"", "]"}]
+        ], "ExampleInitialization"]
+    }, Open]],
+    Cell[CellGroupData[{
+        Cell["Basic Examples", "PrimaryExamplesSection"],
+        Cell["Run one command:", "ExampleText"],
+        Cell[BoxData[
+            RowBox[{"session", "=", RowBox[{"StartGAPSession", "[", "]"}]}]
+        ], "Input"],
+        Cell[BoxData[
+            RowBox[{"GAPEvaluate", "[",
+                RowBox[{"session", ",", "\"1 + 2;\""}], "]"}]
+        ], "Input"],
+        Cell["Run more than one command:", "ExampleText"],
+        Cell[BoxData[
+            RowBox[{"GAPEvaluate", "[", RowBox[{"session", ",",
+                "\"g := SymmetricGroup(4);; Size(g);\""}], "]"}]
+        ], "Input"],
+        Cell[BoxData[
+            RowBox[{"DeleteObject", "[", "session", "]"}]
+        ], "Input"]
+    }, Open]],
+    Cell[CellGroupData[{
+        Cell["Metadata", "MetadataSection"],
+        Cell["New in: 0.1", "History"],
+        Cell[CellGroupData[{
+            Cell["Categorization", "CategorizationSection"],
+            Cell["Symbol", "Categorization", CellLabel -> "Entity Type"],
+            Cell["WolframInstitute/GAPLink", "Categorization",
+                CellLabel -> "Paclet Name"],
+            Cell["WolframInstitute`GAPLink`", "Categorization",
+                CellLabel -> "Context"],
+            Cell["WolframInstitute/GAPLink/ref/GAPEvaluate", "Categorization",
+                CellLabel -> "URI"]
+        }, Closed]]
+    }, Open]]
+},
+    CellContext -> "Global`",
+    TaggingRules -> <|"Paclet" -> "WolframInstitute/GAPLink"|>,
+    StyleDefinitions -> FrontEnd`FileName[
+        {"Wolfram"}, "FunctionPageStylesExt.nb",
+        CharacterEncoding -> "UTF-8"
+    ]
+]

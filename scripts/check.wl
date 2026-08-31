@@ -3,7 +3,8 @@ Needs["PacletTools`"];
 runCheck[] := Module[
     {
         paclet, requiredFields, missingFields, citation, files, context,
-        kernelExtensions, declaredSymbols, exportedSymbols, missingUsage
+        kernelExtensions, declaredSymbols, exportedSymbols, missingUsage,
+        documentationFiles, missingDocumentation, invalidDocumentation
     },
     paclet = Quiet @ Check[PacletObject[File[pacletDirectory]], $Failed];
     scriptRequire[paclet, PacletObjectQ, "Cannot read PacletInfo.wl"];
@@ -63,6 +64,27 @@ runCheck[] := Module[
         !StringQ[Quiet @ ToExpression[# <> "::usage"]] &
     ];
     If[missingUsage =!= {}, scriptFail["Missing usage messages: ", missingUsage]];
+
+    scriptRequire[
+        PacletExtensions[paclet, "Documentation"],
+        Length[#] === 1 &,
+        "PacletInfo.wl must have one Documentation extension"
+    ];
+    documentationFiles = FileNameJoin[{
+        pacletDirectory, "Documentation", "English", "ReferencePages",
+        "Symbols", Last[StringSplit[#, "`"]] <> ".nb"
+    }] & /@ exportedSymbols;
+    missingDocumentation = Select[documentationFiles, !FileExistsQ[#] &];
+    If[missingDocumentation =!= {},
+        scriptFail["Missing reference pages: ", missingDocumentation]
+    ];
+    invalidDocumentation = Select[
+        documentationFiles,
+        !MatchQ[Quiet @ Check[Get[#], $Failed], _Notebook] &
+    ];
+    If[invalidDocumentation =!= {},
+        scriptFail["Invalid reference pages: ", invalidDocumentation]
+    ];
 
     Print["OK: ", paclet["Name"], " ", paclet["Version"]]
 ]
