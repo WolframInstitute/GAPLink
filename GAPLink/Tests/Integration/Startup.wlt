@@ -82,3 +82,66 @@ VerificationTest[
     True,
     TestID -> "Call-GAP-Functions"
 ]
+
+VerificationTest[
+    Module[
+        {
+            cross, cyclic, deleted, forced, group, mutable, nested, record,
+            second, session, stale, staleResult, unsupported, valid
+        },
+        session = StartGAPSession["Executable" -> gapExecutable];
+        second = StartGAPSession["Executable" -> gapExecutable];
+        If[FailureQ[session] || FailureQ[second],
+            DeleteObject /@ Select[{session, second}, Head[#] === GAPSession &];
+            Return[False]
+        ];
+        WithCleanup[
+            group = GAPCall[session, "SymmetricGroup", 4];
+            forced = GAPCall[
+                session, "IdFunc", 42, "ReturnType" -> "Object"
+            ];
+            nested = GAPCall[session, "IdFunc", {group, 7}];
+            record = GAPCall[
+                session, "IdFunc", <|"group" -> group, "n" -> 9|>
+            ];
+            mutable = GAPCall[
+                session, "IdFunc", {1, 2}, "ReturnType" -> "Object"
+            ];
+            cyclic = GAPCall[
+                session, "IdFunc", {}, "ReturnType" -> "Object"
+            ];
+            cross = GAPCall[second, "Size", group];
+            unsupported = Normal[group];
+            valid = Head[group] === GAPObject &&
+                GAPCall[session, "Size", group] === 24 &&
+                Normal[forced] === 42 &&
+                MatchQ[nested, {_GAPObject, 7}] &&
+                GAPCall[session, "Size", nested[[1]]] === 24 &&
+                MatchQ[record, <|"group" -> _GAPObject, "n" -> 9|>] &&
+                GAPCall[session, "Size", record["group"]] === 24 &&
+                GAPCall[session, "Add", mutable, 3] === Null &&
+                Normal[mutable] === {1, 2, 3} &&
+                GAPCall[session, "Add", cyclic, cyclic] === Null &&
+                MatchQ[Normal[cyclic], Failure["GAPUnsupportedValue", _]] &&
+                MatchQ[cross, Failure["GAPInvalidObject", _]] &&
+                MatchQ[unsupported, Failure["GAPUnsupportedValue", _]] &&
+                session["Status"] === "Ready" &&
+                second["Status"] === "Ready";
+            DeleteObject[group];
+            deleted = GAPCall[session, "Size", group];
+            DeleteObject /@ {forced, mutable, cyclic};
+            stale = GAPCall[session, "SymmetricGroup", 3];
+            DeleteObject[session];
+            staleResult = Normal[stale];
+            valid &&
+                MatchQ[deleted, Failure["GAPInvalidObject", _]] &&
+                DeleteObject[group] === Null &&
+                MatchQ[staleResult, Failure["GAPInvalidObject", _]] &&
+                DeleteObject[stale] === Null &&
+                session["Status"] === "Closed",
+            DeleteObject /@ {session, second}
+        ]
+    ],
+    True,
+    TestID -> "Use-GAP-Objects"
+]

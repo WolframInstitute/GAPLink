@@ -7,6 +7,7 @@ PackageScoped["gapLinkCreateSession"]
 PackageScoped["gapLinkRunSessionRequest"]
 PackageScoped["gapLinkSessionData"]
 PackageScoped["gapLinkSetSessionData"]
+PackageScoped["gapLinkStopSession"]
 PackageScoped["gapInvalidSession"]
 PackageScoped["gapOptionFailure"]
 PackageScoped["gapSessionFailure"]
@@ -79,7 +80,8 @@ gapSessionState[id_String] := Module[
         MemberQ[{"Ready", "Busy"}, state["Status"]] &&
             !gapProcessRunningQ[state],
         state = Append[state, "Status" -> "Stopped"];
-        AssociateTo[$gapLinkSessions, id -> state]
+        AssociateTo[$gapLinkSessions, id -> state];
+        gapLinkInvalidateSessionObjects[GAPSession[id]]
     ];
     state
 ]
@@ -90,8 +92,18 @@ gapLinkSessionData[_GAPSession] := gapInvalidSession[]
 gapLinkSetSessionData[GAPSession[id_String], state_Association] :=
     AssociateTo[$gapLinkSessions, id -> state]
 
+gapLinkStopSession[session_GAPSession] := Module[
+    {state = gapLinkSessionData[session]},
+    If[AssociationQ[state],
+        gapLinkStopProcess[Lookup[state, "Process", None]];
+        gapLinkSetSessionData[session, Append[state, "Status" -> "Stopped"]];
+        gapLinkInvalidateSessionObjects[session]
+    ];
+    Null
+]
+
 gapLinkRunSessionRequest[session_GAPSession, payload_, time_] := Module[
-    {result, state = gapLinkSessionData[session]},
+    {result, state = gapLinkSessionData[session], status},
     If[FailureQ[state], Return[state]];
     Switch[state["Status"],
         "Busy", Return @ gapSessionFailure[
@@ -103,16 +115,15 @@ gapLinkRunSessionRequest[session_GAPSession, payload_, time_] := Module[
     gapLinkSetSessionData[session, Append[state, "Status" -> "Busy"]];
     result = CheckAbort[
         gapLinkRequest[state, payload, time],
-        gapLinkSetSessionData[session, Append[state, "Status" -> "Stopped"]];
+        gapLinkStopSession[session];
         Abort[]
     ];
     If[FailureQ[result],
+        status = If[gapProcessRunningQ[state], "Ready", "Stopped"];
         gapLinkSetSessionData[
-            session,
-            Append[state, "Status" -> If[
-                gapProcessRunningQ[state], "Ready", "Stopped"
-            ]]
+            session, Append[state, "Status" -> status]
         ];
+        If[status === "Stopped", gapLinkInvalidateSessionObjects[session]];
         Return[result]
     ];
     gapLinkSetSessionData[session, Append[result["State"], "Status" -> "Ready"]];
@@ -168,6 +179,7 @@ gapDeleteSession[session : GAPSession[id_String]] := Module[{state},
             <|"Status" -> "Closed"|>
         ]
     ];
+    gapLinkInvalidateSessionObjects[session];
     Null
 ]
 gapDeleteSession[_GAPSession] := gapInvalidSession[]

@@ -59,7 +59,24 @@ GAPCall[session, "IdFunc", {2/3, True, "hello"}]
 The results should be `55` and `{2/3, True, "hello"}`.
 
 ```wolfram
+group = GAPCall[session, "SymmetricGroup", 4]
+GAPCall[session, "Size", group]
+
+value = GAPCall[
+  session,
+  "IdFunc",
+  42,
+  "ReturnType" -> "Object"
+]
+Normal[value]
+DeleteObject[value]
+```
+
+The group stays in GAP. The size and copied value should be `24` and `42`.
+
+```wolfram
 GAPCall[session, "Print", "hello", "Output" -> "Capture"]
+DeleteObject[group]
 DeleteObject[session]
 session["Status"]
 ```

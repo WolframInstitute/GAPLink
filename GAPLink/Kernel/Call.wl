@@ -6,7 +6,8 @@ GAPCall::usage = "GAPCall[session, name, args] calls a named GAP function."
 
 Options[GAPCall] = {
     TimeConstraint -> Infinity,
-    "Output" -> "Print"
+    "Output" -> "Print",
+    "ReturnType" -> "Automatic"
 };
 
 gapCallBytes[bytes_ByteArray] := Module[{text},
@@ -67,6 +68,9 @@ gapCallResponse[payload_, name_String, error_] := Module[{message, status},
         "GAPUnsupportedValue", gapSessionFailure[
             status, message, <|"Function" -> name|>
         ],
+        "GAPInvalidObject", gapSessionFailure[
+            status, message, <|"Function" -> name|>
+        ],
         _, gapSessionFailure[
             "GAPProtocolError", "GAP returned an invalid response."
         ]
@@ -74,9 +78,12 @@ gapCallResponse[payload_, name_String, error_] := Module[{message, status},
 ]
 
 GAPCall[
-    session_GAPSession, name_String, arguments___, opts : OptionsPattern[]
+    session_GAPSession, name_String,
+    arguments : Longest[Except[_Rule | _RuleDelayed]...],
+    opts : OptionsPattern[]
 ] := Module[
-    {args = {arguments}, bad, output, payload, response, result, time},
+    {args = {arguments}, bad, output, payload, response, result, returnType,
+     time},
     bad = SelectFirst[
         {opts},
         !MemberQ[First /@ Options[GAPCall], First[#]] &,
@@ -84,11 +91,17 @@ GAPCall[
     ];
     If[bad =!= None, Return[gapOptionFailure[First[bad]]]];
     output = OptionValue["Output"];
+    returnType = OptionValue["ReturnType"];
     time = OptionValue[TimeConstraint];
     If[!gapTimeConstraintQ[time], Return[gapOptionFailure[TimeConstraint]]];
     If[!MemberQ[{"Print", "Capture", "Discard"}, output],
         Return[gapOptionFailure["Output"]]
     ];
+    If[!MemberQ[{"Automatic", "Object"}, returnType],
+        Return[gapOptionFailure["ReturnType"]]
+    ];
+    args = gapLinkObjectArguments[session, args];
+    If[FailureQ[args], Return[args]];
     If[!FreeQ[args, Null], Return @ gapSessionFailure[
         "GAPUnsupportedValue", "The value cannot be sent to GAP.",
         <|"Type" -> "Null"|>
@@ -97,7 +110,7 @@ GAPCall[
         "Operation" -> "Call",
         "Name" -> name,
         "Arguments" -> args,
-        "ReturnType" -> "Automatic"
+        "ReturnType" -> returnType
     |>;
     result = gapLinkProtocolEncodeValue[payload];
     If[FailureQ[result], Return[result]];
@@ -105,11 +118,9 @@ GAPCall[
     If[FailureQ[response], Return[response]];
     result = gapCallResponse[response["Payload"], name, response["StandardError"]];
     If[MatchQ[result, Failure["GAPProtocolError", _]],
-        gapLinkStopProcess[gapLinkSessionData[session]["Process"]];
-        gapLinkSetSessionData[
-            session, Append[gapLinkSessionData[session], "Status" -> "Stopped"]
-        ]
+        gapLinkStopSession[session]
     ];
+    If[!FailureQ[result], result = gapLinkImportObjects[session, result]];
     gapCallOutput[result, response, output]
 ]
 

@@ -2,7 +2,11 @@ Needs["WolframInstitute`GAPLink`"];
 
 VerificationTest[
     Options[GAPCall],
-    {TimeConstraint -> Infinity, "Output" -> "Print"},
+    {
+        TimeConstraint -> Infinity,
+        "Output" -> "Print",
+        "ReturnType" -> "Automatic"
+    },
     TestID -> "Call-Defaults"
 ]
 
@@ -11,6 +15,7 @@ VerificationTest[
         {
             GAPCall[GAPSession["missing"], "Size", TimeConstraint -> 0],
             GAPCall[GAPSession["missing"], "Size", "Output" -> "Other"],
+            GAPCall[GAPSession["missing"], "Size", "ReturnType" -> "Other"],
             GAPCall[GAPSession["missing"], "Size", "Other" -> 1]
         },
         {Failure["GAPInvalidOption", _] ..}
@@ -29,6 +34,15 @@ VerificationTest[
     ],
     True,
     TestID -> "Reject-Call-Values"
+]
+
+VerificationTest[
+    MatchQ[
+        GAPCall[GAPSession["missing"], "IdFunc", {}],
+        Failure["GAPInvalidSession", _]
+    ],
+    True,
+    TestID -> "Keep-Empty-List-Argument"
 ]
 
 VerificationTest[

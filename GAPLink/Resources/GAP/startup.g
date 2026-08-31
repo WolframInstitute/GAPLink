@@ -137,6 +137,18 @@ GAPLinkBad := function(state)
     return fail;
 end;
 
+GAPLinkReferenceMarker := rec();
+
+GAPLinkReference := function(id)
+    return rec(marker := GAPLinkReferenceMarker, id := id);
+end;
+
+GAPLinkReferenceQ := function(value)
+    return IsRecord(value) and IsBound(value.marker) and
+        IsIdenticalObj(value.marker, GAPLinkReferenceMarker) and
+        IsBound(value.id) and IsPosInt(value.id);
+end;
+
 GAPLinkDecodeNode := fail;
 
 GAPLinkChildren := function(state, last, depth)
@@ -274,6 +286,12 @@ GAPLinkDecodeNode := function(state, depth)
             return GAPLinkBad(state);
         fi;
         return value;
+    elif tag = 'o' then
+        value := GAPLinkInteger(data);
+        if value = fail or value <= 0 or value > 9223372036854775807 then
+            return GAPLinkBad(state);
+        fi;
+        return GAPLinkReference(value);
     fi;
     return GAPLinkBad(state);
 end;
@@ -288,13 +306,96 @@ GAPLinkDecode := function(text)
     return value;
 end;
 
+GAPLinkResolve := function(value, state)
+    local key, result, resolved;
+    if GAPLinkReferenceQ(value) then
+        if value.id > Length(state.objects) or
+           not IsBound(state.objects[value.id]) then
+            state.valid := false;
+            return fail;
+        fi;
+        return state.objects[value.id];
+    elif IsString(value) and (Length(value) > 0 or IsStringRep(value)) then
+        return value;
+    elif IsList(value) then
+        result := [];
+        for resolved in value do
+            Add(result, GAPLinkResolve(resolved, state));
+            if not state.valid then
+                return fail;
+            fi;
+        od;
+        return result;
+    elif IsRecord(value) then
+        result := rec();
+        for key in RecNames(value) do
+            resolved := GAPLinkResolve(value.(key), state);
+            if not state.valid then
+                return fail;
+            fi;
+            result.(key) := resolved;
+        od;
+        return result;
+    fi;
+    return value;
+end;
+
+GAPLinkStore := function(state, value)
+    local id;
+    id := state.nextObject;
+    if id > 9223372036854775807 then
+        return fail;
+    fi;
+    state.nextObject := id + 1;
+    state.objects[id] := value;
+    return GAPLinkNode("o", String(id));
+end;
+
+GAPLinkUnsupported := function(value, state, keep)
+    if keep then
+        return GAPLinkStore(state, value);
+    fi;
+    return fail;
+end;
+
+GAPLinkAcyclic := function(value, parents, depth)
+    local child, key, next;
+    if depth > 128 then
+        return false;
+    elif IsString(value) and (Length(value) > 0 or IsStringRep(value)) then
+        return true;
+    elif IsList(value) then
+        if not IsDenseList(value) or
+           ForAny(parents, x -> IsIdenticalObj(x, value)) then
+            return false;
+        fi;
+        next := Concatenation(parents, [value]);
+        for child in value do
+            if not GAPLinkAcyclic(child, next, depth + 1) then
+                return false;
+            fi;
+        od;
+    elif IsRecord(value) then
+        if ForAny(parents, x -> IsIdenticalObj(x, value)) then
+            return false;
+        fi;
+        next := Concatenation(parents, [value]);
+        for key in RecNames(value) do
+            if not GAPLinkAcyclic(value.(key), next, depth + 1) then
+                return false;
+            fi;
+        od;
+    fi;
+    return true;
+end;
+
 GAPLinkEncode := fail;
 
-GAPLinkEncodeSequence := function(values, depth)
+GAPLinkEncodeSequence := function(values, depth, state)
     local data, encoded, value;
     data := "";
     for value in values do
-        encoded := GAPLinkEncode(value, depth + 1);
+        encoded := GAPLinkEncode(value, depth + 1, state, true);
         if encoded = fail then
             return fail;
         fi;
@@ -303,66 +404,80 @@ GAPLinkEncodeSequence := function(values, depth)
     return data;
 end;
 
-GAPLinkEncode := function(value, depth)
+GAPLinkEncoded := function(value, encoded, state, keep)
+    if Length(encoded) <= 67108864 then
+        return encoded;
+    fi;
+    return GAPLinkUnsupported(value, state, keep);
+end;
+
+GAPLinkEncode := function(value, depth, state, keep)
     local data, encoded, key, keys, parts;
     if depth > 128 then
-        return fail;
+        return GAPLinkUnsupported(value, state, keep);
     elif IsInt(value) then
-        return GAPLinkNode("i", String(value));
+        encoded := GAPLinkNode("i", String(value));
     elif IsRat(value) then
         data := Concatenation(
             GAPLinkNode("i", String(NumeratorRat(value))),
             GAPLinkNode("i", String(DenominatorRat(value)))
         );
-        return GAPLinkNode("q", data);
+        encoded := GAPLinkNode("q", data);
     elif IsBool(value) then
         if value = true then
-            return "t0:";
+            encoded := "t0:";
         elif value = false then
-            return "f0:";
+            encoded := "f0:";
+        else
+            encoded := "x0:";
         fi;
-        return "x0:";
     elif IsFloat(value) then
         parts := ExtRepOfObj(value);
         if not IsList(parts) or Length(parts) <> 2 or
            not ForAll(parts, IsInt) then
-            return fail;
+            return GAPLinkUnsupported(value, state, keep);
         fi;
-        data := GAPLinkEncodeSequence(parts, depth);
-        return GAPLinkNode("d", data);
+        data := GAPLinkEncodeSequence(parts, depth, state);
+        encoded := GAPLinkNode("d", data);
     elif IsString(value) and (Length(value) > 0 or IsStringRep(value)) then
         if Unicode(value, "UTF-8") = fail then
-            return GAPLinkNode("b", GAPLinkHex(value));
+            encoded := GAPLinkNode("b", GAPLinkHex(value));
+        else
+            encoded := GAPLinkString(value);
         fi;
-        return GAPLinkString(value);
     elif IsPerm(value) then
-        data := GAPLinkEncodeSequence(ListPerm(value), depth);
-        return GAPLinkNode("p", data);
+        data := GAPLinkEncodeSequence(ListPerm(value), depth, state);
+        encoded := GAPLinkNode("p", data);
     elif IsList(value) then
-        if not IsDenseList(value) then
-            return fail;
+        if depth = 0 and not GAPLinkAcyclic(value, [], 0) then
+            return GAPLinkUnsupported(value, state, keep);
         fi;
-        data := GAPLinkEncodeSequence(value, depth);
+        data := GAPLinkEncodeSequence(value, depth, state);
         if data = fail then
-            return fail;
+            return GAPLinkUnsupported(value, state, keep);
         fi;
-        return GAPLinkNode("l", data);
+        encoded := GAPLinkNode("l", data);
     elif IsRecord(value) then
+        if depth = 0 and not GAPLinkAcyclic(value, [], 0) then
+            return GAPLinkUnsupported(value, state, keep);
+        fi;
         data := "";
         keys := SortedList(RecNames(value));
         for key in keys do
             if Unicode(key, "UTF-8") = fail then
-                return fail;
+                return GAPLinkUnsupported(value, state, keep);
             fi;
-            encoded := GAPLinkEncode(value.(key), depth + 1);
+            encoded := GAPLinkEncode(value.(key), depth + 1, state, true);
             if encoded = fail then
-                return fail;
+                return GAPLinkUnsupported(value, state, keep);
             fi;
             data := Concatenation(data, GAPLinkString(key), encoded);
         od;
-        return GAPLinkNode("r", data);
+        encoded := GAPLinkNode("r", data);
+    else
+        return GAPLinkUnsupported(value, state, keep);
     fi;
-    return fail;
+    return GAPLinkEncoded(value, encoded, state, keep);
 end;
 
 GAPLinkFrame := function(token, kind, id, payload)
@@ -421,13 +536,13 @@ GAPLinkRequestQ := function(request, names)
     return IsRecord(request) and Set(RecNames(request)) = Set(names);
 end;
 
-GAPLinkCall := function(request)
-    local caught, encoded, func;
+GAPLinkCall := function(request, state)
+    local arguments, caught, encoded, func;
     if not GAPLinkRequestQ(
         request, ["Arguments", "Name", "Operation", "ReturnType"]
     ) or request.Operation <> "Call" or
        not IsString(request.Name) or not IsList(request.Arguments) or
-       request.ReturnType <> "Automatic" then
+       not (request.ReturnType in ["Automatic", "Object"]) then
         return fail;
     fi;
     if not IsValidIdentifier(request.Name) or
@@ -438,19 +553,69 @@ GAPLinkCall := function(request)
         );
     fi;
     func := ValueGlobal(request.Name);
-    caught := CALL_WITH_CATCH(func, request.Arguments);
+    state.valid := true;
+    arguments := GAPLinkResolve(request.Arguments, state);
+    if not state.valid then
+        return GAPLinkError("GAPInvalidObject", "The GAP object is not valid.");
+    fi;
+    caught := CALL_WITH_CATCH(func, arguments);
     if caught[1] = false then
         return GAPLinkError("GAPError", "GAP reported an error.");
     elif Length(caught) = 1 then
         return GAPLinkOK("n0:");
+    elif request.ReturnType = "Object" then
+        encoded := GAPLinkStore(state, caught[2]);
+    else
+        encoded := GAPLinkEncode(caught[2], 0, state, true);
     fi;
-    encoded := GAPLinkEncode(caught[2], 0);
-    if encoded = fail or Length(encoded) > 67108864 then
+    if encoded = fail then
         return GAPLinkError(
             "GAPUnsupportedValue", "The GAP result cannot be converted."
         );
     fi;
     return GAPLinkOK(encoded);
+end;
+
+GAPLinkNormal := function(request, state)
+    local encoded, id;
+    if not GAPLinkRequestQ(request, ["Object", "Operation"]) or
+       request.Operation <> "Normal" or
+       not GAPLinkReferenceQ(request.Object) then
+        return fail;
+    fi;
+    id := request.Object.id;
+    if id > Length(state.objects) or not IsBound(state.objects[id]) then
+        return GAPLinkError("GAPInvalidObject", "The GAP object is not valid.");
+    fi;
+    encoded := GAPLinkEncode(state.objects[id], 0, state, false);
+    if encoded = fail then
+        return GAPLinkError(
+            "GAPUnsupportedValue", "The GAP object cannot be copied."
+        );
+    fi;
+    return GAPLinkOK(encoded);
+end;
+
+GAPLinkRelease := function(request, state)
+    local reference;
+    if not GAPLinkRequestQ(request, ["Objects", "Operation"]) or
+       request.Operation <> "Release" or not IsList(request.Objects) then
+        return fail;
+    fi;
+    for reference in request.Objects do
+        if not GAPLinkReferenceQ(reference) then
+            return fail;
+        elif reference.id > Length(state.objects) or
+             not IsBound(state.objects[reference.id]) then
+            return GAPLinkError(
+                "GAPInvalidObject", "The GAP object is not valid."
+            );
+        fi;
+    od;
+    for reference in request.Objects do
+        Unbind(state.objects[reference.id]);
+    od;
+    return GAPLinkOK("n0:");
 end;
 
 GAPLinkHello := function()
@@ -487,7 +652,7 @@ end;
 
 GAPLinkMain := function()
     local char, decoded, errors, input, next, output, request, response,
-          token, valid;
+          state, token, valid;
 
     if not IsBound(GAPInfo.SystemEnvironment.GAPLINK_TOKEN) then
         ForceQuitGap(1);
@@ -506,6 +671,7 @@ GAPLinkMain := function()
     errors := OutputTextFile("*errout*", false);
     BreakOnError := false;
     next := 1;
+    state := rec(objects := [], nextObject := 1, valid := true);
 
     while true do
         request := GAPLinkReadFrame(input, token);
@@ -519,8 +685,15 @@ GAPLinkMain := function()
         elif next > 1 and GAPLinkRequestQ(decoded, ["Operation"]) and
              decoded.Operation = "Close" then
             response := GAPLinkOK("n0:");
-        elif next > 1 then
-            response := GAPLinkCall(decoded);
+        elif next > 1 and IsRecord(decoded) and IsBound(decoded.Operation) and
+             decoded.Operation = "Call" then
+            response := GAPLinkCall(decoded, state);
+        elif next > 1 and IsRecord(decoded) and IsBound(decoded.Operation) and
+             decoded.Operation = "Normal" then
+            response := GAPLinkNormal(decoded, state);
+        elif next > 1 and IsRecord(decoded) and IsBound(decoded.Operation) and
+             decoded.Operation = "Release" then
+            response := GAPLinkRelease(decoded, state);
         else
             ForceQuitGap(1);
         fi;

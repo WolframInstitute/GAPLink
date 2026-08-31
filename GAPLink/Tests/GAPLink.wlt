@@ -27,6 +27,6 @@ VerificationTest[
 
 VerificationTest[
     Names["WolframInstitute`GAPLink`*"],
-    {"GAPCall", "GAPSession", "StartGAPSession"},
+    {"GAPCall", "GAPObject", "GAPSession", "StartGAPSession"},
     TestID -> "Export-Public-API"
 ]

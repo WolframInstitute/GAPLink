@@ -96,6 +96,9 @@ A request payload is a record with an `"Operation"` field.
 
 `"ReturnType"` is `"Automatic"` or `"Object"`.
 
+Object IDs belong to one session. `Normal` asks GAP to copy an object. `Release` removes
+object IDs that are no longer needed.
+
 ## Responses
 
 A response payload is a record with a `"Status"` field. A successful response uses `"OK"`
