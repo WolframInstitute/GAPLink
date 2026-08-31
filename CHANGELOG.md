@@ -11,6 +11,7 @@ Notable changes are listed here.
 - Added `StartGAPSession` and `GAPSession`.
 - Added `GAPCall` for named functions and basic values.
 - Added `GAPEvaluate` for GAP code.
+- Added package checks and package loading.
 - Added `GAPObject` for values kept in GAP.
 - Fixed direct empty-list arguments to `GAPCall`.
 - Added a persistent request loop and clean session shutdown.

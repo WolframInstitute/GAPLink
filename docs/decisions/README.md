@@ -15,6 +15,7 @@ Accepted:
 - [0006: Errors and time limits](0006-errors-and-time-limits.md)
 - [0007: Supported versions and systems](0007-supported-versions-and-systems.md)
 - [0008: Process protocol and output](0008-process-protocol-and-output.md)
+- [0009: GAP packages](0009-gap-packages.md)
 
 Next:
 

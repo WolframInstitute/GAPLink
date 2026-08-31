@@ -30,6 +30,7 @@ The [private process protocol](protocol.md) defines the messages exchanged with 
 - [Uncertain process state stops the session](decisions/0006-errors-and-time-limits.md).
 - [The first release targets recent GAP 4 releases on Linux, macOS, and Windows](decisions/0007-supported-versions-and-systems.md).
 - [The process uses private framed messages and keeps GAP output separate](decisions/0008-process-protocol-and-output.md).
+- [GAPLink checks and loads packages through GAP](decisions/0009-gap-packages.md).
 
 ## Still to decide
 

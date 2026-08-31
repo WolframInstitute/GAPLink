@@ -34,9 +34,8 @@ gapEvaluateResponse[payload_, error_] := Module[{message, status},
 GAPEvaluate[
     session_GAPSession, code_String, opts : OptionsPattern[]
 ] := Module[
-    {options, output, payload, response, result, returnType, rules, time},
-    rules = Cases[{opts}, _Rule | _RuleDelayed, Infinity];
-    options = gapLinkRequestOptions[GAPEvaluate, rules];
+    {options, output, payload, response, result, returnType, time},
+    options = gapLinkRequestOptions[GAPEvaluate, {opts}];
     If[FailureQ[options], Return[options]];
     {output, returnType, time} = options;
     payload = <|

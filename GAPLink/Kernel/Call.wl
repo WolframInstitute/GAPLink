@@ -3,6 +3,7 @@
 PackageExported[GAPCall]
 
 PackageScoped["gapLinkBytes"]
+PackageScoped["gapLinkOptionValues"]
 PackageScoped["gapLinkOutput"]
 PackageScoped["gapLinkRequestOptions"]
 
@@ -81,15 +82,22 @@ gapCallResponse[payload_, name_String, error_] := Module[{message, status},
     ]
 ]
 
-gapLinkRequestOptions[head_Symbol, rules_List] := Module[{bad, values},
+gapLinkOptionValues[head_Symbol, rules_List, names_List] := Module[
+    {bad, flat = Flatten[rules]},
     bad = SelectFirst[
-        rules,
+        flat,
         !MemberQ[First /@ Options[head], First[#]] &,
         None
     ];
     If[bad =!= None, Return[gapOptionFailure[First[bad]]]];
-    values = OptionValue[head, rules, #] & /@
-        {"Output", "ReturnType", TimeConstraint};
+    OptionValue[head, flat, #] & /@ names
+]
+
+gapLinkRequestOptions[head_Symbol, rules_List] := Module[{values},
+    values = gapLinkOptionValues[
+        head, rules, {"Output", "ReturnType", TimeConstraint}
+    ];
+    If[FailureQ[values], Return[values]];
     Which[
         !gapTimeConstraintQ[values[[3]]], gapOptionFailure[TimeConstraint],
         !MemberQ[{"Print", "Capture", "Discard"}, values[[1]]],

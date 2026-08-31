@@ -23,7 +23,9 @@ PacletObject[<|
                 "WolframInstitute`GAPLink`GAPCall",
                 "WolframInstitute`GAPLink`GAPEvaluate",
                 "WolframInstitute`GAPLink`GAPObject",
+                "WolframInstitute`GAPLink`GAPPackageAvailableQ",
                 "WolframInstitute`GAPLink`GAPSession",
+                "WolframInstitute`GAPLink`LoadGAPPackage",
                 "WolframInstitute`GAPLink`StartGAPSession"
             }
         },

@@ -202,3 +202,42 @@ VerificationTest[
     True,
     TestID -> "Evaluate-GAP-Code"
 ]
+
+VerificationTest[
+    Module[
+        {available, exact, loaded, missing, missingLoad, second, session},
+        session = StartGAPSession["Executable" -> gapExecutable];
+        If[FailureQ[session], Print["ERROR: ", session]; Return[False]];
+        WithCleanup[
+            available = GAPPackageAvailableQ[session, "example"];
+            missing = GAPPackageAvailableQ[
+                session, "GAPLinkMissingPackage"
+            ];
+            missingLoad = LoadGAPPackage[
+                session, "GAPLinkMissingPackage"
+            ];
+            loaded = LoadGAPPackage[session, "example"];
+            exact = If[
+                AssociationQ[loaded],
+                GAPPackageAvailableQ[
+                    session, "example",
+                    "Version" -> "=" <> loaded["Version"]
+                ],
+                False
+            ];
+            second = LoadGAPPackage[session, "example"];
+            available === True && missing === False &&
+                MatchQ[missingLoad,
+                    Failure["GAPPackageNotAvailable", _]] &&
+                missingLoad["Package"] === "GAPLinkMissingPackage" &&
+                MatchQ[loaded,
+                    <|"Name" -> "example", "Version" -> _String|>] &&
+                second === loaded && exact === True &&
+                GAPCall[session, "IsPackageLoaded", "example"] === True &&
+                session["Status"] === "Ready",
+            DeleteObject[session]
+        ]
+    ],
+    True,
+    TestID -> "Use-GAP-Package"
+]

@@ -5,7 +5,7 @@
 GAPLink connects Wolfram Language to [GAP](https://www.gap-system.org/).
 PureMath is one possible user, but GAPLink is designed for any Wolfram Language project.
 
-The project can start GAP, call functions, and run GAP code.
+The project can start GAP, load packages, call functions, and run GAP code.
 
 ## Requirements
 
@@ -26,6 +26,8 @@ Needs["WolframInstitute`GAPLink`"]
 session = StartGAPSession[]
 session["Version"]
 session["Packages"]
+GAPPackageAvailableQ[session, "example"]
+LoadGAPPackage[session, "example"]
 GAPCall[session, "Sum", {1, 2, 3}]
 GAPEvaluate[session, "Size(SymmetricGroup(4));"]
 DeleteObject[session]
@@ -58,6 +60,15 @@ GAPCall[session, "IdFunc", {2/3, True, "hello"}]
 ```
 
 The results should be `55` and `{2/3, True, "hello"}`.
+
+```wolfram
+GAPPackageAvailableQ[session, "example"]
+package = LoadGAPPackage[session, "example"]
+GAPCall[session, "IsPackageLoaded", "example"]
+```
+
+The first and last results should be `True`. `package` contains the package version.
+GAPLink loads packages already available to GAP. It does not install them.
 
 ```wolfram
 GAPEvaluate[session, "1 + 2;"]
