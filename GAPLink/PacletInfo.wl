@@ -20,6 +20,7 @@ PacletObject[<|
                 {"WolframInstitute`GAPLink`", "GAPLink.wl"}
             },
             "Symbols" -> {
+                "WolframInstitute`GAPLink`GAPCall",
                 "WolframInstitute`GAPLink`GAPSession",
                 "WolframInstitute`GAPLink`StartGAPSession"
             }

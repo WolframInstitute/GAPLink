@@ -43,3 +43,42 @@ VerificationTest[
     True,
     TestID -> "Start-And-Close-GAP-Session"
 ]
+
+VerificationTest[
+    Module[{afterError, captured, error, missing, result, session, values},
+        session = StartGAPSession["Executable" -> gapExecutable];
+        If[FailureQ[session], Print["ERROR: ", session]; Return[False]];
+        WithCleanup[
+            values = {
+                12345678901234567890, -2/3, True, False,
+                Missing["GAPFail"], 1.5, "GAP \[Lambda]", ByteArray[{0, 255}],
+                Cycles[{}], Cycles[{{1, 2, 3}}], {}, {1, 2}, <||>,
+                <|"a" -> Missing["GAPFail"], "b" -> 2|>
+            };
+            result = GAPCall[session, "IdFunc", values];
+            captured = GAPCall[
+                session, "Print", "hello", "Output" -> "Capture"
+            ];
+            missing = GAPCall[
+                session, "GAPLinkMissingFunction", "Output" -> "Discard"
+            ];
+            error = GAPCall[
+                session, "QuoInt", 1, 0, "Output" -> "Capture"
+            ];
+            afterError = GAPCall[session, "Sum", {1, 2, 3}];
+            result === values &&
+                captured === <|
+                    "Result" -> Null,
+                    "StandardOutput" -> "hello",
+                    "StandardError" -> ""
+                |> &&
+                MatchQ[missing, Failure["GAPFunctionNotFound", _]] &&
+                MatchQ[error, Failure["GAPError", _]] &&
+                StringContainsQ[error["StandardError"], "Error"] &&
+                afterError === 6 && session["Status"] === "Ready",
+            DeleteObject[session]
+        ]
+    ],
+    True,
+    TestID -> "Call-GAP-Functions"
+]

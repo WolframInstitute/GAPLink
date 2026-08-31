@@ -108,8 +108,8 @@ succeeds. GAP then reads one request at a time. A `"Close"` response ends the pr
 
 ## Live test
 
-`make test-gap` starts and closes a public GAP session. It checks the `"Hello"` exchange and
-is separate from `make test`, which does not need GAP.
+`make test-gap` starts a public GAP session and calls GAP functions. It is separate from
+`make test`, which does not need GAP.
 
 ## Invalid data
 

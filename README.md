@@ -5,7 +5,7 @@
 GAPLink connects Wolfram Language to [GAP](https://www.gap-system.org/).
 PureMath is one possible user, but GAPLink is designed for any Wolfram Language project.
 
-The project can start and stop a GAP session.
+The project can start GAP and call named GAP functions.
 
 ## Requirements
 
@@ -26,6 +26,7 @@ Needs["WolframInstitute`GAPLink`"]
 session = StartGAPSession[]
 session["Version"]
 session["Packages"]
+GAPCall[session, "Sum", {1, 2, 3}]
 DeleteObject[session]
 ```
 
@@ -35,7 +36,37 @@ To choose the GAP program:
 StartGAPSession["Executable" -> "/path/to/gap"]
 ```
 
-## Live test
+## Test in a notebook
+
+Start a fresh kernel. Run each block in a new cell.
+
+```wolfram
+PacletDirectoryLoad["/path/to/GAPLink/GAPLink"];
+Needs["WolframInstitute`GAPLink`"];
+```
+
+```wolfram
+session = StartGAPSession[]
+session["Status"]
+session["Version"]
+```
+
+```wolfram
+GAPCall[session, "Sum", Range[10]]
+GAPCall[session, "IdFunc", {2/3, True, "hello"}]
+```
+
+The results should be `55` and `{2/3, True, "hello"}`.
+
+```wolfram
+GAPCall[session, "Print", "hello", "Output" -> "Capture"]
+DeleteObject[session]
+session["Status"]
+```
+
+The last status should be `"Closed"`.
+
+## Test from a shell
 
 Install GAP and put `gap` on `PATH`, then run:
 
@@ -43,8 +74,7 @@ Install GAP and put `gap` on `PATH`, then run:
 make test-gap
 ```
 
-This starts and closes a real GAP session. It does not run GAP calculations yet. To set the
-executable path:
+This starts GAP and tests calls and value conversion. To set the executable path:
 
 ```bash
 GAPLINK_GAP=/path/to/gap make test-gap

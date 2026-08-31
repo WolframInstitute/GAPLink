@@ -75,7 +75,7 @@ jobs:
           retention-days: 30
 
   gap:
-    name: GAP startup (${{ matrix.gap-version }})
+    name: GAP ${{ matrix.gap-version }}
     needs: paclet
     runs-on: ubuntu-latest
     timeout-minutes: 45
@@ -109,7 +109,7 @@ jobs:
         with:
           gap-version: ${{ matrix.gap-version }}
 
-      - name: Test GAP startup
+      - name: Test GAP
         run: |
           GAPLINK_GAP="$GAPROOT/gap" \
           GAPLINK_EXPECTED_GAP_VERSION="${{ matrix.gap-version }}" \

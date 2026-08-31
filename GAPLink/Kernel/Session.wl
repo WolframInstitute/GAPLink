@@ -4,7 +4,13 @@ PackageExported[StartGAPSession]
 PackageExported[GAPSession]
 
 PackageScoped["gapLinkCreateSession"]
+PackageScoped["gapLinkRunSessionRequest"]
 PackageScoped["gapLinkSessionData"]
+PackageScoped["gapLinkSetSessionData"]
+PackageScoped["gapInvalidSession"]
+PackageScoped["gapOptionFailure"]
+PackageScoped["gapSessionFailure"]
+PackageScoped["gapTimeConstraintQ"]
 
 StartGAPSession::usage = "StartGAPSession[] starts GAP. StartGAPSession[\"Executable\" -> path] uses the GAP program at path."
 GAPSession::usage = "GAPSession[...] represents a GAP session. session[\"property\"] reads a session property."
@@ -32,6 +38,10 @@ gapExecutableOptionQ[_] := False
 
 gapTimeConstraintQ[Infinity] := True
 gapTimeConstraintQ[value_] := TrueQ[NumberQ[value] && Positive[value]]
+
+gapProcessRunningQ[state_] := TrueQ @ Quiet @ Check[
+    ProcessStatus[state["Process"]] === "Running", False
+]
 
 Options[StartGAPSession] = {
     "Executable" -> Automatic,
@@ -67,10 +77,7 @@ gapSessionState[id_String] := Module[
     If[MissingQ[state], Return[gapInvalidSession[]]];
     If[
         MemberQ[{"Ready", "Busy"}, state["Status"]] &&
-            !TrueQ @ Quiet @ Check[
-                ProcessStatus[state["Process"]] === "Running",
-                False
-            ],
+            !gapProcessRunningQ[state],
         state = Append[state, "Status" -> "Stopped"];
         AssociateTo[$gapLinkSessions, id -> state]
     ];
@@ -79,6 +86,38 @@ gapSessionState[id_String] := Module[
 
 gapLinkSessionData[GAPSession[id_String]] := gapSessionState[id]
 gapLinkSessionData[_GAPSession] := gapInvalidSession[]
+
+gapLinkSetSessionData[GAPSession[id_String], state_Association] :=
+    AssociateTo[$gapLinkSessions, id -> state]
+
+gapLinkRunSessionRequest[session_GAPSession, payload_, time_] := Module[
+    {result, state = gapLinkSessionData[session]},
+    If[FailureQ[state], Return[state]];
+    Switch[state["Status"],
+        "Busy", Return @ gapSessionFailure[
+            "GAPSessionBusy", "The GAP session is busy."
+        ],
+        "Ready", Null,
+        _, Return[gapInvalidSession[]]
+    ];
+    gapLinkSetSessionData[session, Append[state, "Status" -> "Busy"]];
+    result = CheckAbort[
+        gapLinkRequest[state, payload, time],
+        gapLinkSetSessionData[session, Append[state, "Status" -> "Stopped"]];
+        Abort[]
+    ];
+    If[FailureQ[result],
+        gapLinkSetSessionData[
+            session,
+            Append[state, "Status" -> If[
+                gapProcessRunningQ[state], "Ready", "Stopped"
+            ]]
+        ];
+        Return[result]
+    ];
+    gapLinkSetSessionData[session, Append[result["State"], "Status" -> "Ready"]];
+    result
+]
 
 gapSessionProperty[state_, "Status"] := state["Status"]
 gapSessionProperty[state_, "Executable"] := state["Executable"]
