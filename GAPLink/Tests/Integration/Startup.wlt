@@ -1,7 +1,7 @@
 Needs["WolframInstitute`GAPLink`"];
 
-startGAP = Symbol[
-    "WolframInstitute`GAPLink`PackageScope`gapLinkStartGAP"
+sessionData = Symbol[
+    "WolframInstitute`GAPLink`PackageScope`gapLinkSessionData"
 ];
 gapExecutable = Replace[
     Quiet @ Environment["GAPLINK_GAP"],
@@ -12,35 +12,32 @@ expectedVersion = Replace[
     {version_String /; version =!= "" :> version, _ -> Automatic}
 ];
 
-stopGAP[session_Association] := Module[{process = session["Process"]},
-    Quiet @ Check[Close[ProcessConnection[process, "StandardInput"]], Null];
-    TimeConstrained[
-        While[ProcessStatus[process] === "Running", Pause[.01]],
-        5,
-        Quiet @ Check[KillProcess[process], Null]
-    ]
-]
-stopGAP[_] := Null
-
 VerificationTest[
-    Module[{session = startGAP[gapExecutable], info},
+    Module[{closed, details, process, session, state, valid},
+        session = StartGAPSession["Executable" -> gapExecutable];
         If[FailureQ[session], Print["ERROR: ", session]; Return[False]];
         WithCleanup[
-            info = session["Info"];
+            state = sessionData[session];
+            details = state["Info"];
+            process = state["Process"];
             Print[
-                "  GAP ", info["GAPVersion"],
-                If[TrueQ[info["Tested"]], "", " (untested)"], " | ",
-                info["System"], " ", info["Processor"]
+                "  GAP ", session["Version"],
+                If[TrueQ[details["Tested"]], "", " (untested)"], " | ",
+                details["System"], " ", details["Processor"]
             ];
-            ProcessStatus[session["Process"]] === "Running" &&
-                info["ProtocolVersion"] === 1 &&
-                MemberQ[{True, False}, info["Tested"]] &&
-                MatchQ[info["Packages"], {___String}] &&
+            valid = session["Status"] === "Ready" &&
+                details["ProtocolVersion"] === 1 &&
+                MemberQ[{True, False}, details["Tested"]] &&
+                MatchQ[session["Packages"], {___String}] &&
                 (expectedVersion === Automatic ||
-                    info["GAPVersion"] === expectedVersion),
-            stopGAP[session]
+                    session["Version"] === expectedVersion);
+            DeleteObject[session];
+            closed = session["Status"] === "Closed" &&
+                ProcessStatus[process] =!= "Running";
+            valid && closed,
+            DeleteObject[session]
         ]
     ],
     True,
-    TestID -> "Start-GAP-And-Read-Hello"
+    TestID -> "Start-And-Close-GAP-Session"
 ]

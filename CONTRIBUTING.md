@@ -5,7 +5,7 @@
 - Wolfram Language 15.0 or later
 - `wolframscript` on `PATH`
 - Git and `make`
-- GAP 4.14–4.16 for the startup test
+- GAP 4.14–4.16 for the live session test
 
 GAP is not needed for `make test`.
 

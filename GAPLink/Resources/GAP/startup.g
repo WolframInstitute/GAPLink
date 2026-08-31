@@ -39,14 +39,14 @@ GAPLinkStringList := function(values)
 end;
 
 GAPLinkRead := function(stream, count)
-    local byte, result;
-    result := [];
+    local chunk, result;
+    result := "";
     while Length(result) < count do
-        byte := ReadByte(stream);
-        if byte = fail then
+        chunk := ReadAll(stream, count - Length(result));
+        if chunk = fail or Length(chunk) = 0 then
             return fail;
         fi;
-        Add(result, CharInt(byte));
+        result := Concatenation(result, chunk);
     od;
     return result;
 end;
@@ -116,7 +116,7 @@ GAPLinkMain := function()
     errorEnd := Concatenation("GAPLINK:", token, ":1:E:1:0:");
     PrintTo("*errout*", errorEnd);
 
-    if ReadByte(input) <> fail then
+    if GAPLinkRead(input, 1) <> fail then
         ForceQuitGap(1);
     fi;
     ForceQuitGap(0);

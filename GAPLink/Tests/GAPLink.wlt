@@ -26,7 +26,7 @@ VerificationTest[
 ]
 
 VerificationTest[
-    Names["WolframInstitute`GAPLink`*"] === {},
-    True,
-    TestID -> "Foundation-Exports-No-Premature-API"
+    Names["WolframInstitute`GAPLink`*"],
+    {"GAPSession", "StartGAPSession"},
+    TestID -> "Export-Public-API"
 ]

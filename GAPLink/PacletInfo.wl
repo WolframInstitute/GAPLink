@@ -18,6 +18,10 @@ PacletObject[<|
             "Root" -> "Kernel",
             "Context" -> {
                 {"WolframInstitute`GAPLink`", "GAPLink.wl"}
+            },
+            "Symbols" -> {
+                "WolframInstitute`GAPLink`GAPSession",
+                "WolframInstitute`GAPLink`StartGAPSession"
             }
         },
         {

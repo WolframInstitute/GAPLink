@@ -53,10 +53,7 @@ runCheck[] := Module[
     context = paclet["PrimaryContext"];
     kernelExtensions = PacletExtensions[paclet, "Kernel"];
     declaredSymbols = Flatten[Lookup[Last /@ kernelExtensions, "Symbols", {}]];
-    exportedSymbols = Select[
-        Names[context <> "*"],
-        StringCount[#, "`"] === StringCount[context, "`"] &
-    ];
+    exportedSymbols = context <> # & /@ Names[context <> "*"];
     If[
         Sort[declaredSymbols] =!= Sort[exportedSymbols],
         scriptFail["PacletInfo.wl symbol list does not match exported symbols"]

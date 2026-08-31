@@ -108,8 +108,8 @@ succeeds.
 
 ## Live test
 
-`make test-gap` starts an installed GAP process and checks the `"Hello"` exchange. It is
-separate from `make test`, which does not need GAP.
+`make test-gap` starts and closes a public GAP session. It checks the `"Hello"` exchange and
+is separate from `make test`, which does not need GAP.
 
 ## Invalid data
 
