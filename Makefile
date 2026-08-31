@@ -1,15 +1,16 @@
 WOLFRAMSCRIPT ?= wolframscript
 
 .DEFAULT_GOAL := help
-.PHONY: help all check test build verify lint hooks clean
+.PHONY: help all check test test-gap build verify lint hooks clean
 
 help:
 	@printf '  make %-10s %s\n' \
 		check  'metadata, lint, and source load' \
-		test   'GAPLink/Tests/*.wlt' \
+		test   'GAP-free tests' \
+		test-gap 'startup test with installed GAP' \
 		build  '.paclet archive into build/' \
 		verify 'load the archive in a fresh kernel' \
-		all    'full check in one kernel' \
+		all    'GAP-free full check in one kernel' \
 		lint   'CodeInspector on FILES="..."' \
 		hooks  'enable the repository Git hooks' \
 		clean  'remove generated build output'
@@ -22,6 +23,9 @@ check:
 
 test:
 	$(WOLFRAMSCRIPT) -file scripts/test.wls
+
+test-gap:
+	$(WOLFRAMSCRIPT) -file scripts/test-gap.wls
 
 build:
 	$(WOLFRAMSCRIPT) -file scripts/build.wls

@@ -73,3 +73,44 @@ jobs:
           path: build/*.paclet
           if-no-files-found: error
           retention-days: 30
+
+  gap:
+    name: GAP startup (${{ matrix.gap-version }})
+    needs: paclet
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      max-parallel: 1
+      matrix:
+        gap-version: ["4.14.0", "4.15.1", "4.16.1"]
+    container:
+      image: wolframresearch/wolframengine:15.0
+      options: --user root
+    env:
+      WOLFRAMSCRIPT_ENTITLEMENTID: ${{ secrets.WOLFRAMSCRIPT_ENTITLEMENTID }}
+      QT_QPA_PLATFORM: offscreen
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      - name: Check Wolfram Engine entitlement
+        run: test -n "${WOLFRAMSCRIPT_ENTITLEMENTID:-}"
+
+      - name: Install GAP build tools
+        run: |
+          apt-get update
+          apt-get install -y --no-install-recommends \
+            build-essential jq libdigest-sha-perl libgmp-dev libreadline-dev \
+            sudo wget zlib1g-dev
+
+      - name: Set up GAP
+        uses: gap-actions/setup-gap@f12222f1b86ce1f8a246c4000abfd6e69893411c # v3
+        with:
+          gap-version: ${{ matrix.gap-version }}
+
+      - name: Test GAP startup
+        run: |
+          GAPLINK_GAP="$GAPROOT/gap" \
+          GAPLINK_EXPECTED_GAP_VERSION="${{ matrix.gap-version }}" \
+          make test-gap

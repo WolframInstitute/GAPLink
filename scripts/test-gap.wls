@@ -3,4 +3,7 @@
 Get[FileNameJoin[{DirectoryName[$InputFileName], "common.wl"}]];
 
 loadSource[];
-runTests @ FileNames["*.wlt", FileNameJoin[{pacletDirectory, "Tests"}]];
+runTests @ FileNames[
+    "*.wlt",
+    FileNameJoin[{pacletDirectory, "Tests", "Integration"}]
+];

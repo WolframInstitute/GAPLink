@@ -25,6 +25,42 @@ loadSource[] := Module[{paclet, context, result},
     paclet
 ];
 
+runTests[files_List] := Module[{reports, passed, failed, runtimeFailures},
+    If[files === {}, scriptFail["No test files found"]];
+    reports = Table[
+        With[{report = TestReport[file]},
+            scriptRequire[
+                report,
+                Head[#] === TestReportObject &,
+                "Could not run ", file
+            ];
+            Print[
+                "  ", FileNameTake[file], ": ",
+                report["TestsSucceededCount"], "/",
+                report["TestsSucceededCount"] + report["TestsFailedCount"]
+            ];
+            report
+        ],
+        {file, files}
+    ];
+    passed = Total[#["TestsSucceededCount"] & /@ reports];
+    failed = Total[#["TestsFailedCount"] & /@ reports];
+    runtimeFailures = Total[Length[#["RuntimeFailures"]] & /@ reports];
+    If[failed + runtimeFailures > 0,
+        Scan[
+            Function[report,
+                Scan[
+                    If[#["Outcome"] =!= "Success", Print["FAIL: ", #["TestID"]]] &,
+                    Values[report["TestResults"]]
+                ]
+            ],
+            reports
+        ];
+        scriptFail[failed, " failed test(s), ", runtimeFailures, " runtime failure(s)"]
+    ];
+    Print["OK: ", passed, " tests passed"]
+];
+
 lintFiles[files_List] := Module[{issueCount = 0, issues, errors},
     Needs["CodeInspector`"];
     Scan[

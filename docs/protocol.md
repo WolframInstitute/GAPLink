@@ -106,6 +106,11 @@ The `"Hello"` result reports the protocol version, GAP version, build, system, p
 packages, and whether GAP is an HPC build. No other request is valid before `"Hello"`
 succeeds.
 
+## Live test
+
+`make test-gap` starts an installed GAP process and checks the `"Hello"` exchange. It is
+separate from `make test`, which does not need GAP.
+
 ## Invalid data
 
 GAPLink stops the session when a frame has the wrong version, token, kind, request ID, length,

@@ -5,8 +5,9 @@
 - Wolfram Language 15.0 or later
 - `wolframscript` on `PATH`
 - Git and `make`
+- GAP 4.14–4.16 for the startup test
 
-GAP is not needed for the current tests.
+GAP is not needed for `make test`.
 
 ## Project rules
 
@@ -21,8 +22,17 @@ GAP is not needed for the current tests.
 ```bash
 make check
 make test
+make test-gap
 make all
 ```
+
+`make test-gap` finds `gap` on `PATH`. To set its path:
+
+```bash
+GAPLINK_GAP=/path/to/gap make test-gap
+```
+
+The Windows `gap.bat` launcher is not supported yet.
 
 To lint selected Wolfram Language files:
 
@@ -66,7 +76,7 @@ entitlement = CreateLicenseEntitlement[
 entitlement["EntitlementID"]
 ```
 
-CI runs its full check in one kernel, so a kernel limit of `1` is enough. This may use
+CI runs its Wolfram jobs one at a time, so a kernel limit of `1` is enough. This may use
 Service Credits. Add the entitlement ID to GitHub:
 
 ```bash
@@ -88,4 +98,4 @@ the organization secret is ready:
 gh secret delete WOLFRAMSCRIPT_ENTITLEMENTID --repo WolframInstitute/GAPLink
 ```
 
-CI does not install GAP or publish releases.
+CI tests startup with GAP 4.14.0, 4.15.1, and 4.16.1. It does not publish releases.
