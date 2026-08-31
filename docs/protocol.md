@@ -102,8 +102,9 @@ A response payload is a record with a `"Status"` field. A successful response us
 and has a `"Result"` field. An error status uses the matching GAPLink failure tag and has a
 short `"Message"` field.
 
-The `"Hello"` result reports the protocol version, GAP version, build, system, processor, and
-packages. No other request is valid before `"Hello"` succeeds.
+The `"Hello"` result reports the protocol version, GAP version, build, system, processor,
+packages, and whether GAP is an HPC build. No other request is valid before `"Hello"`
+succeeds.
 
 ## Invalid data
 
