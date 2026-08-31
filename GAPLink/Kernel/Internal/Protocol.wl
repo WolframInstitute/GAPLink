@@ -46,7 +46,10 @@ protocolNode[tag_String, data_String] := Module[{node},
 
 protocolHex[bytes_List] := StringJoin[IntegerString[#, 16, 2] & /@ bytes]
 
-protocolSortKeys[keys_List] := SortBy[keys, ToCharacterCode[#, "UTF-8"] &]
+protocolSortKeys[keys_List] := SortBy[
+    keys, ToCharacterCode[#, "UTF-8"] &,
+    LexicographicOrder[#1, #2] === 1 &
+]
 
 protocolEncodeParts[values_List, depth_Integer] := Module[{parts, failure},
     parts = protocolEncodeNode[#, depth + 1] & /@ values;

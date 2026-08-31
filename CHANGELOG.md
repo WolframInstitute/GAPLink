@@ -16,4 +16,8 @@ Notable changes are listed here.
 - Simplified the project documentation.
 - Renamed `Scripts/` to `scripts/` and simplified the development scripts.
 
+### Fixed
+
+- Fixed the GAP startup handshake.
+
 [Unreleased]: https://github.com/WolframInstitute/GAPLink/commits/main

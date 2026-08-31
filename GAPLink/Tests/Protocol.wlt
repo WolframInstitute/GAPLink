@@ -87,9 +87,14 @@ VerificationTest[
 ]
 
 VerificationTest[
-    encodeValue[<|"z" -> 1, "a" -> 2|>] ===
-        encodeValue[<|"a" -> 2, "z" -> 1|>],
-    True,
+    {
+        encodeValue[<|"HPC" -> 1, "Build" -> 2|>],
+        decodeValue["r31:s10:4275696c64i1:2s6:485043i1:1"]
+    },
+    {
+        "r31:s10:4275696c64i1:2s6:485043i1:1",
+        <|"Build" -> 2, "HPC" -> 1|>
+    },
     TestID -> "Sort-Record-Keys"
 ]
 
