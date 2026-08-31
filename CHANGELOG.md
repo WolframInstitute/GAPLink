@@ -9,6 +9,7 @@ Notable changes are listed here.
 - Added the initial paclet, development commands, and CI.
 - Added a live GAP startup test for GAP 4.14.0, 4.15.1, and 4.16.1.
 - Added `StartGAPSession` and `GAPSession`.
+- Added a persistent request loop and clean session shutdown.
 - Added decisions for project scope, GAP installation, how GAP runs, the first public API,
   value conversion, error handling, supported systems, and the process protocol.
 

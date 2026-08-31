@@ -26,6 +26,7 @@ VerificationTest[
                 details["System"], " ", details["Processor"]
             ];
             valid = session["Status"] === "Ready" &&
+                state["NextRequestID"] === 2 &&
                 details["ProtocolVersion"] === 1 &&
                 MemberQ[{True, False}, details["Tested"]] &&
                 MatchQ[session["Packages"], {___String}] &&
@@ -33,7 +34,8 @@ VerificationTest[
                     session["Version"] === expectedVersion);
             DeleteObject[session];
             closed = session["Status"] === "Closed" &&
-                ProcessStatus[process] =!= "Running";
+                ProcessStatus[process] =!= "Running" &&
+                ProcessInformation[process, "ExitCode"] === 0;
             valid && closed,
             DeleteObject[session]
         ]

@@ -51,30 +51,85 @@ GAPLinkRead := function(stream, count)
     return result;
 end;
 
-GAPLinkMain := function()
-    local build, char, errorEnd, hello, hpc, input, packages, processor,
-          request, response, result, system, token, valid;
-
-    if not IsBound(GAPInfo.SystemEnvironment.GAPLINK_TOKEN) then
-        ForceQuitGap(1);
-    fi;
-    token := GAPInfo.SystemEnvironment.GAPLINK_TOKEN;
-    valid := Length(token) = 32;
-    for char in token do
-        valid := valid and char in "0123456789abcdef";
+GAPLinkReadField := function(stream, maximum)
+    local chunk, result;
+    result := "";
+    while Length(result) <= maximum do
+        chunk := ReadAll(stream, 1);
+        if chunk = fail or Length(chunk) = 0 then
+            return fail;
+        elif chunk = ":" then
+            return result;
+        fi;
+        result := Concatenation(result, chunk);
     od;
-    if not valid then
-        ForceQuitGap(1);
-    fi;
+    return fail;
+end;
 
-    hello := GAPLinkRecord([["Operation", GAPLinkString("Hello")]]);
-    request := Concatenation(
-        "GAPLINK:", token, ":1:Q:1:", String(Length(hello)), ":", hello
-    );
-    input := InputTextUser();
-    if GAPLinkRead(input, Length(request)) <> request then
-        ForceQuitGap(1);
+GAPLinkNatural := function(text, maximum)
+    local char, value;
+    if text = fail or Length(text) = 0 or
+       (Length(text) > 1 and text[1] = '0') then
+        return fail;
     fi;
+    for char in text do
+        if not char in "0123456789" then
+            return fail;
+        fi;
+    od;
+    value := Int(text);
+    if value > maximum then
+        return fail;
+    fi;
+    return value;
+end;
+
+GAPLinkFrame := function(token, kind, id, payload)
+    return Concatenation(
+        "GAPLINK:", token, ":1:", kind, ":", String(id), ":",
+        String(Length(payload)), ":", payload
+    );
+end;
+
+GAPLinkReadFrame := function(stream, token)
+    local id, length, prefix, text;
+    prefix := Concatenation("GAPLINK:", token, ":1:Q:");
+    if GAPLinkRead(stream, Length(prefix)) <> prefix then
+        return fail;
+    fi;
+    text := GAPLinkReadField(stream, 19);
+    id := GAPLinkNatural(text, 9223372036854775807);
+    if id = fail then
+        return fail;
+    fi;
+    text := GAPLinkReadField(stream, 8);
+    length := GAPLinkNatural(text, 67108864);
+    if length = fail or length = 0 then
+        return fail;
+    fi;
+    text := GAPLinkRead(stream, length);
+    if text = fail then
+        return fail;
+    fi;
+    return [id, text];
+end;
+
+GAPLinkWriteResponse := function(output, errors, token, id, payload)
+    if WriteAll(output, GAPLinkFrame(token, "R", id, payload)) <> true then
+        return false;
+    fi;
+    return WriteAll(errors, GAPLinkFrame(token, "E", id, "")) = true;
+end;
+
+GAPLinkOK := function(result)
+    return GAPLinkRecord([
+        ["Result", result],
+        ["Status", GAPLinkString("OK")]
+    ]);
+end;
+
+GAPLinkHello := function()
+    local build, hpc, packages, processor, result, system;
 
     build := GAPInfo.BuildVersion;
     system := GAPInfo.Architecture;
@@ -102,24 +157,52 @@ GAPLinkMain := function()
         ["ProtocolVersion", GAPLinkNode("i", "1")],
         ["System", GAPLinkString(system)]
     ]);
-    response := GAPLinkRecord([
-        ["Result", result],
-        ["Status", GAPLinkString("OK")]
-    ]);
-    WriteAll(
-        OutputTextUser(),
-        Concatenation(
-            "GAPLINK:", token, ":1:R:1:", String(Length(response)), ":",
-            response
-        )
-    );
-    errorEnd := Concatenation("GAPLINK:", token, ":1:E:1:0:");
-    PrintTo("*errout*", errorEnd);
+    return GAPLinkOK(result);
+end;
 
-    if GAPLinkRead(input, 1) <> fail then
+GAPLinkMain := function()
+    local char, close, errors, hello, input, next, output, request,
+          response, token, valid;
+
+    if not IsBound(GAPInfo.SystemEnvironment.GAPLINK_TOKEN) then
         ForceQuitGap(1);
     fi;
-    ForceQuitGap(0);
+    token := GAPInfo.SystemEnvironment.GAPLINK_TOKEN;
+    valid := Length(token) = 32;
+    for char in token do
+        valid := valid and char in "0123456789abcdef";
+    od;
+    if not valid then
+        ForceQuitGap(1);
+    fi;
+
+    input := InputTextUser();
+    output := OutputTextUser();
+    errors := OutputTextFile("*errout*", false);
+    hello := GAPLinkRecord([["Operation", GAPLinkString("Hello")]]);
+    close := GAPLinkRecord([["Operation", GAPLinkString("Close")]]);
+    next := 1;
+
+    while true do
+        request := GAPLinkReadFrame(input, token);
+        if request = fail or request[1] <> next then
+            ForceQuitGap(1);
+        fi;
+        if next = 1 and request[2] = hello then
+            response := GAPLinkHello();
+        elif next > 1 and request[2] = close then
+            response := GAPLinkOK("n0:");
+        else
+            ForceQuitGap(1);
+        fi;
+        if not GAPLinkWriteResponse(output, errors, token, next, response) then
+            ForceQuitGap(1);
+        fi;
+        if request[2] = close then
+            ForceQuitGap(0);
+        fi;
+        next := next + 1;
+    od;
 end;
 
 GAPLinkMain();

@@ -1,7 +1,9 @@
 (* ::Package:: *)
 
 PackageScoped["gapLinkGAPCommand"]
+PackageScoped["gapLinkRequest"]
 PackageScoped["gapLinkStartGAP"]
+PackageScoped["gapLinkStopProcess"]
 PackageScoped["gapLinkValidateGAPHello"]
 
 $gapLinkStartupTimeout = 30;
@@ -45,16 +47,17 @@ gapProcessBytes[stream_] := Replace[
 gapJoinBytes[left_ByteArray, right_ByteArray] :=
     ByteArray[Join[Normal[left], Normal[right]]]
 
-gapEmptyChannel[] := <|
+gapEmptyChannel[buffer_: ByteArray[{}]] := <|
     "Done" -> False,
     "Output" -> ByteArray[{}],
-    "Buffer" -> ByteArray[{}]
+    "Buffer" -> buffer
 |>
 
-gapReadChannel[channel_String, state_Association, stream_, token_String] := Module[
-    {result, buffer},
+gapReadChannel[
+    channel_String, state_Association, stream_, token_String, requestID_Integer
+] := Module[{result, buffer},
     buffer = gapJoinBytes[state["Buffer"], gapProcessBytes[stream]];
-    result = gapLinkProtocolReadFrame[channel, buffer, token, 1];
+    result = gapLinkProtocolReadFrame[channel, buffer, token, requestID];
     If[FailureQ[result], Return[result]];
     If[result["Status"] === "Complete",
         <|
@@ -71,33 +74,36 @@ gapReadChannel[channel_String, state_Association, stream_, token_String] := Modu
     ]
 ]
 
-gapLinkWaitForHello[process_ProcessObject, token_String] := Module[
-    {error = gapEmptyChannel[], output = gapEmptyChannel[], next},
+gapProcessFailure[tag_String, message_String, data_: <||>] := Failure[
+    tag,
+    Join[
+        <|"MessageTemplate" -> message, "MessageParameters" -> <||>|>,
+        data
+    ]
+]
+
+gapLinkWaitForResponse[state_Association, requestID_Integer] := Module[
+    {error, next, output, process = state["Process"], token = state["Token"]},
+    output = gapEmptyChannel[state["StandardOutputBuffer"]];
+    error = gapEmptyChannel[state["StandardErrorBuffer"]];
     While[True,
         If[!output["Done"],
             next = gapReadChannel[
                 "Response", output,
-                ProcessConnection[process, "StandardOutput"], token
+                ProcessConnection[process, "StandardOutput"], token, requestID
             ];
-            If[FailureQ[next], Return @ gapStartFailure[
-                "InvalidResponse", "GAP returned an invalid startup response."
-            ]];
+            If[FailureQ[next], Return[next]];
             output = next
         ];
         If[!error["Done"],
             next = gapReadChannel[
                 "ErrorEnd", error,
-                ProcessConnection[process, "StandardError"], token
+                ProcessConnection[process, "StandardError"], token, requestID
             ];
-            If[FailureQ[next], Return @ gapStartFailure[
-                "InvalidResponse", "GAP returned an invalid startup response."
-            ]];
+            If[FailureQ[next], Return[next]];
             error = next
         ];
         If[output["Done"] && error["Done"],
-            If[ProcessStatus[process] =!= "Running", Return @ gapStartFailure[
-                "ProcessStopped", "GAP stopped during startup."
-            ]];
             Return @ <|
                 "Payload" -> output["Frame"]["Payload"],
                 "StandardOutput" -> output["Output"],
@@ -106,8 +112,8 @@ gapLinkWaitForHello[process_ProcessObject, token_String] := Module[
                 "StandardErrorBuffer" -> error["Buffer"]
             |>
         ];
-        If[ProcessStatus[process] =!= "Running", Return @ gapStartFailure[
-            "ProcessStopped", "GAP stopped during startup."
+        If[ProcessStatus[process] =!= "Running", Return @ gapProcessFailure[
+            "GAPProcessStopped", "The GAP process stopped."
         ]];
         Pause[.01]
     ]
@@ -158,13 +164,85 @@ gapLinkValidateGAPHello[payload_] := Module[{hpc, info, parts, status},
     Append[info, "Tested" -> 14 <= parts[[2]] <= 16]
 ]
 
-gapStopProcess[process_ProcessObject] := If[
+gapLinkStopProcess[process_ProcessObject] := If[
     ProcessStatus[process] === "Running",
     Quiet @ Check[KillProcess[process], Null]
 ]
 
+gapLinkRequest[state_Association, payload_, time_] := Module[
+    {frame, process = state["Process"], requestID, response, timedOut, updated},
+    If[ProcessStatus[process] =!= "Running", Return @ gapProcessFailure[
+        "GAPProcessStopped", "The GAP process stopped."
+    ]];
+    requestID = state["NextRequestID"];
+    frame = gapLinkProtocolEncodeFrame[
+        "Request", state["Token"], requestID, payload
+    ];
+    If[FailureQ[frame], Return[frame]];
+    If[!TrueQ @ Quiet @ Check[
+        BinaryWrite[
+            ProcessConnection[process, "StandardInput"], Normal[frame], "Byte"
+        ];
+        Flush[ProcessConnection[process, "StandardInput"]];
+        True,
+        False
+    ],
+        gapLinkStopProcess[process];
+        Return @ gapProcessFailure[
+            "GAPProcessStopped", "GAP did not accept the request."
+        ]
+    ];
+
+    timedOut = Unique[];
+    response = CheckAbort[
+        TimeConstrained[
+            gapLinkWaitForResponse[state, requestID], time, timedOut
+        ],
+        gapLinkStopProcess[process];
+        Abort[]
+    ];
+    If[response === timedOut,
+        gapLinkStopProcess[process];
+        Return @ gapProcessFailure[
+            "GAPTimeConstraintExceeded", "The GAP request took too long.",
+            <|"TimeConstraint" -> time|>
+        ]
+    ];
+    If[FailureQ[response],
+        gapLinkStopProcess[process];
+        Return[response]
+    ];
+    updated = Join[
+        state,
+        <|
+            "NextRequestID" -> requestID + 1,
+            "StandardOutputBuffer" -> response["StandardOutputBuffer"],
+            "StandardErrorBuffer" -> response["StandardErrorBuffer"]
+        |>
+    ];
+    <|
+        "State" -> updated,
+        "Payload" -> response["Payload"],
+        "StandardOutput" -> response["StandardOutput"],
+        "StandardError" -> response["StandardError"]
+    |>
+]
+
+gapStartupRequestFailure[Failure["GAPTimeConstraintExceeded", _]] :=
+    gapStartFailure[
+        "TimeConstraintExceeded", "GAP did not start in time."
+    ]
+
+gapStartupRequestFailure[Failure["GAPProcessStopped", _]] := gapStartFailure[
+    "ProcessStopped", "GAP stopped during startup."
+]
+
+gapStartupRequestFailure[_Failure] := gapStartFailure[
+    "InvalidResponse", "GAP returned an invalid startup response."
+]
+
 gapLinkStartGAP[path_: Automatic, time_: $gapLinkStartupTimeout] := Module[
-    {command, environment, executable, frame, handshake, info, process, timedOut, token},
+    {command, environment, executable, info, process, request, state, token},
     executable = gapLinkFindGAPExecutable[path];
     If[FailureQ[executable], Return[executable]];
     command = gapLinkGAPCommand[executable];
@@ -180,52 +258,31 @@ gapLinkStartGAP[path_: Automatic, time_: $gapLinkStartupTimeout] := Module[
         "StartProcessFailed", "GAP could not be started."
     ]];
 
-    frame = gapLinkProtocolEncodeFrame[
-        "Request", token, 1, <|"Operation" -> "Hello"|>
+    state = <|
+        "Process" -> process,
+        "Executable" -> executable,
+        "Token" -> token,
+        "NextRequestID" -> 1,
+        "StandardOutputBuffer" -> ByteArray[{}],
+        "StandardErrorBuffer" -> ByteArray[{}]
+    |>;
+    request = gapLinkRequest[state, <|"Operation" -> "Hello"|>, time];
+    If[FailureQ[request],
+        Return[gapStartupRequestFailure[request]]
     ];
-    If[!TrueQ @ Quiet @ Check[
-        BinaryWrite[
-            ProcessConnection[process, "StandardInput"], Normal[frame], "Byte"
-        ];
-        Flush[ProcessConnection[process, "StandardInput"]];
-        True,
-        False
-    ],
-        gapStopProcess[process];
+    If[ProcessStatus[process] =!= "Running",
         Return @ gapStartFailure[
-            "RequestFailed", "GAP did not accept the startup request."
+            "ProcessStopped", "GAP stopped during startup."
         ]
     ];
-
-    timedOut = Unique[];
-    handshake = CheckAbort[
-        TimeConstrained[gapLinkWaitForHello[process, token], time, timedOut],
-        gapStopProcess[process];
-        Abort[]
-    ];
-    If[handshake === timedOut,
-        gapStopProcess[process];
-        Return @ gapStartFailure[
-            "TimeConstraintExceeded", "GAP did not start in time."
-        ]
-    ];
-    If[FailureQ[handshake],
-        gapStopProcess[process];
-        Return[handshake]
-    ];
-    info = gapLinkValidateGAPHello[handshake["Payload"]];
+    info = gapLinkValidateGAPHello[request["Payload"]];
     If[FailureQ[info],
-        gapStopProcess[process];
+        gapLinkStopProcess[process];
         Return[info]
     ];
     Join[
-        <|
-            "Process" -> process,
-            "Executable" -> executable,
-            "Token" -> token,
-            "NextRequestID" -> 2,
-            "Info" -> info
-        |>,
-        KeyDrop[handshake, "Payload"]
+        request["State"],
+        <|"Info" -> info|>,
+        KeyTake[request, {"StandardOutput", "StandardError"}]
     ]
 ]

@@ -99,16 +99,29 @@ gapCloseProcess[process_ProcessObject] := If[
     TimeConstrained[
         While[ProcessStatus[process] === "Running", Pause[.01]],
         1,
-        gapStopProcess[process]
+        gapLinkStopProcess[process]
     ]
 ]
 gapCloseProcess[_] := Null
+
+gapCloseSession[state_Association] := Module[
+    {process = Lookup[state, "Process", None], response},
+    If[state["Status"] === "Ready",
+        response = gapLinkRequest[state, <|"Operation" -> "Close"|>, 5];
+        If[
+            FailureQ[response] ||
+                response["Payload"] =!= <|"Result" -> Null, "Status" -> "OK"|>,
+            gapLinkStopProcess[process]
+        ]
+    ];
+    gapCloseProcess[process]
+]
 
 gapDeleteSession[session : GAPSession[id_String]] := Module[{state},
     state = gapLinkSessionData[session];
     If[FailureQ[state], Return[state]];
     If[state["Status"] === "Closed", Return[Null]];
-    gapCloseProcess[Lookup[state, "Process", None]];
+    gapCloseSession[state];
     AssociateTo[
         $gapLinkSessions,
         id -> Join[

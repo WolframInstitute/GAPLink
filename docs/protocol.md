@@ -104,7 +104,7 @@ short `"Message"` field.
 
 The `"Hello"` result reports the protocol version, GAP version, build, system, processor,
 packages, and whether GAP is an HPC build. No other request is valid before `"Hello"`
-succeeds.
+succeeds. GAP then reads one request at a time. A `"Close"` response ends the process.
 
 ## Live test
 
