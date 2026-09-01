@@ -4,6 +4,10 @@ Notable changes are listed here.
 
 ## [Unreleased]
 
+### Changed
+
+- Show Wolfram Cloud publishing with the release checks.
+
 ## [0.2.0] - 2026-09-02
 
 ### Added

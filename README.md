@@ -1,7 +1,7 @@
 # GAPLink
 
 [![CI](https://github.com/WolframInstitute/GAPLink/actions/workflows/ci.yml/badge.svg)](https://github.com/WolframInstitute/GAPLink/actions/workflows/ci.yml)
-[![Publish](https://github.com/WolframInstitute/GAPLink/actions/workflows/publish.yml/badge.svg)](https://github.com/WolframInstitute/GAPLink/actions/workflows/publish.yml)
+[![Release](https://github.com/WolframInstitute/GAPLink/actions/workflows/release.yml/badge.svg)](https://github.com/WolframInstitute/GAPLink/actions/workflows/release.yml)
 
 GAPLink connects Wolfram Language to [GAP](https://www.gap-system.org/).
 It starts GAP, loads packages, calls functions, and runs GAP code. PureMath is one user,

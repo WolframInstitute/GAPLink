@@ -14,6 +14,7 @@ different file.
 - A `vMAJOR.MINOR.PATCH` tag must match `PacletInfo.wl`.
 - The tagged commit must have a successful `main` CI run.
 - The tag workflow reuses the four platform paclets that passed CI.
+- GitHub and cloud publishing are jobs in the same tag workflow.
 - GitHub Releases stores the paclets, checksums, and GAP source archives.
 - Wolfram Cloud receives the same paclets after the GitHub release succeeds.
 - The cloud keeps one latest file for each system.
@@ -32,7 +33,8 @@ selects the correct file with `$SystemID`.
 
 ## Result
 
-Tags publish the verified platform files. Normal pushes do not publish.
+Tags publish the verified platform files. Both publish jobs appear on the tagged commit.
+Normal pushes do not publish.
 
 ## Checks
 

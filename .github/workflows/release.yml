@@ -103,3 +103,48 @@ jobs:
           else
             gh release create "$TAG" dist/* --title "$TAG" --generate-notes --verify-tag
           fi
+
+  publish:
+    name: Publish to Wolfram Cloud
+    needs: release
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    container:
+      image: wolframresearch/wolframengine:15.0
+      options: --user root
+    env:
+      WOLFRAMSCRIPT_ENTITLEMENTID: ${{ secrets.WOLFRAMSCRIPT_ENTITLEMENTID }}
+      WOLFRAM_CLOUD_USER: ${{ secrets.WOLFRAM_CLOUD_USER }}
+      WOLFRAM_CLOUD_PASSWORD: ${{ secrets.WOLFRAM_CLOUD_PASSWORD }}
+      RELEASE_COMMIT: ${{ github.sha }}
+      QT_QPA_PLATFORM: offscreen
+    steps:
+      - name: Check out tagged commit
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      - name: Check credentials
+        run: |
+          for name in WOLFRAMSCRIPT_ENTITLEMENTID WOLFRAM_CLOUD_USER WOLFRAM_CLOUD_PASSWORD; do
+            if [ -z "${!name:-}" ]; then
+              echo "::error title=Missing credential::$name is not set."
+              exit 1
+            fi
+          done
+
+      - name: Download release files
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
+        with:
+          name: paclet
+          path: build
+
+      - name: Publish paclet
+        id: publish
+        run: wolframscript -file scripts/publish.wls
+
+      - name: Add summary
+        run: |
+          echo '### Published to Wolfram Cloud' >> "$GITHUB_STEP_SUMMARY"
+          echo '' >> "$GITHUB_STEP_SUMMARY"
+          echo '- Archives: ${{ steps.publish.outputs.archives }}' >> "$GITHUB_STEP_SUMMARY"
+          echo '- Page: ${{ steps.publish.outputs.page }}' >> "$GITHUB_STEP_SUMMARY"
+          echo '- Install: `PacletInstall["${{ steps.publish.outputs.prefix }}" <> $SystemID <> ".paclet"]`' >> "$GITHUB_STEP_SUMMARY"
