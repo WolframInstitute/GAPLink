@@ -15,6 +15,7 @@ Notable changes are listed here.
 - Chose one GAPLink release paclet with GAP for each supported system.
 - Prefer GAP included in the paclet when starting a session.
 - Restore executable permissions removed during paclet installation.
+- Made platform runtime builds faster and reusable in CI.
 
 ## [0.1.0] - 2026-09-01
 

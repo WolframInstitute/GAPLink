@@ -4,6 +4,7 @@ $ProgressPreference = "SilentlyContinue"
 $Version = "4.16.1"
 $SystemID = "Windows-x86-64"
 $InstallerName = "gap-$Version-x86_64.exe"
+$PackagesName = "packages-required-v$Version.tar.gz"
 $InstallerHash = "b26346c3febb31f3e44600973207a37f50dd36c65cd22668264d55617b43081a"
 $CoreHash = "b4433a540a2f746d14b1645a0e95b3d499afb180aa421ebfd62b427f2b0cf74f"
 $PackagesHash = "fb9350f66ec4febf09858f5475abe31dd91a97e827477e1da9eb393d07f311a8"
@@ -11,49 +12,85 @@ $ReleaseURL = "https://github.com/gap-system/gap/releases/download/v$Version"
 $RepositoryRoot = Split-Path $PSScriptRoot -Parent
 $SourceDirectory = Join-Path $RepositoryRoot "build/runtime-sources"
 $OutputDirectory = Join-Path $RepositoryRoot "build/runtimes/$SystemID"
-$Installer = Join-Path $SourceDirectory $InstallerName
+
+function Get-VerifiedFile($Name, $ExpectedHash) {
+    $Path = Join-Path $SourceDirectory $Name
+    if (-not (Test-Path $Path)) {
+        Write-Host "Downloading $Name..."
+        & curl.exe --fail --location --retry 3 --output "$Path.part" "$ReleaseURL/$Name"
+        if ($LASTEXITCODE -ne 0) {
+            throw "Could not download $Name"
+        }
+        Move-Item "$Path.part" $Path
+    }
+    if ((Get-FileHash $Path -Algorithm SHA256).Hash.ToLowerInvariant() -ne $ExpectedHash) {
+        throw "Bad checksum: $Name"
+    }
+    $Path
+}
 
 if (Test-Path $OutputDirectory) {
     throw "Run make clean before rebuilding $SystemID"
 }
 
-New-Item -ItemType Directory -Force $SourceDirectory, $OutputDirectory | Out-Null
-if (-not (Test-Path $Installer)) {
-    Invoke-WebRequest "$ReleaseURL/$InstallerName" -OutFile "$Installer.part"
-    Move-Item "$Installer.part" $Installer
-}
-
-$Hash = (Get-FileHash $Installer -Algorithm SHA256).Hash.ToLowerInvariant()
-if ($Hash -ne $InstallerHash) {
-    throw "Bad checksum: $InstallerName"
-}
+New-Item -ItemType Directory -Force $SourceDirectory | Out-Null
+$Installer = Get-VerifiedFile $InstallerName $InstallerHash
+$PackagesArchive = Get-VerifiedFile $PackagesName $PackagesHash
 
 $TemporaryRoot = if ($env:RUNNER_TEMP) { $env:RUNNER_TEMP } else { [IO.Path]::GetTempPath() }
 $InstallDirectory = Join-Path $TemporaryRoot "gaplink-$([Guid]::NewGuid())"
+$InstallLog = "$InstallDirectory.log"
 $Runtime = Join-Path $OutputDirectory "runtime"
 $RequiredPackages = @("gapdoc", "perfgrp", "primgrp", "smallgrp", "transgrp")
 
 try {
-    $Arguments = "/VERYSILENT /SUPPRESSMSGBOXES /NORESTART /CURRENTUSER /DIR=`"$InstallDirectory`""
+    Write-Host "Installing GAP..."
+    $Arguments = @(
+        "/VERYSILENT", "/SUPPRESSMSGBOXES", "/NORESTART", "/NOICONS",
+        "/CURRENTUSER", "/DIR=$InstallDirectory", "/LOG=$InstallLog"
+    )
     $Process = Start-Process $Installer -ArgumentList $Arguments -Wait -PassThru
     if ($Process.ExitCode -ne 0) {
+        if (Test-Path $InstallLog) { Get-Content $InstallLog -Tail 80 }
         throw "GAP installer failed with exit code $($Process.ExitCode)"
     }
 
     $GapRoot = Join-Path $InstallDirectory "runtime/opt/gap-$Version"
     $GapExecutable = Join-Path $GapRoot "gap.exe"
     if (-not (Test-Path $GapExecutable)) {
-        throw "GAP executable was not installed"
+        $GapExecutable = Get-ChildItem $InstallDirectory -Filter "gap.exe" -File -Recurse |
+            Select-Object -First 1
+        if ($null -eq $GapExecutable) {
+            if (Test-Path $InstallLog) { Get-Content $InstallLog -Tail 80 }
+            throw "GAP executable was not installed"
+        }
+        $GapRoot = $GapExecutable.DirectoryName
     }
 
-    Get-ChildItem (Join-Path $GapRoot "pkg") -Directory |
-        Where-Object { $RequiredPackages -notcontains $_.Name.ToLowerInvariant() } |
-        Remove-Item -Recurse -Force
-    Copy-Item $InstallDirectory $Runtime -Recurse
+    Write-Host "Copying runtime..."
+    New-Item -ItemType Directory -Force $OutputDirectory | Out-Null
+    & robocopy $InstallDirectory $Runtime /E /XD (Join-Path $GapRoot "pkg") `
+        /MT:8 /NFL /NDL /NJH /NJS /NP
+    if ($LASTEXITCODE -gt 7) {
+        throw "Could not copy GAP runtime"
+    }
+    $RuntimeGapRoot = Join-Path $Runtime "runtime/opt/gap-$Version"
+    $RuntimePackages = Join-Path $RuntimeGapRoot "pkg"
+    New-Item -ItemType Directory -Force $RuntimePackages | Out-Null
+    tar -xzf $PackagesArchive -C $RuntimePackages
+    if ($LASTEXITCODE -ne 0) {
+        throw "Could not extract required GAP packages"
+    }
+    foreach ($Package in $RequiredPackages) {
+        if (-not (Test-Path (Join-Path $RuntimePackages $Package))) {
+            throw "Required package is missing: $Package"
+        }
+    }
     Remove-Item (Join-Path $Runtime "unins*") -Force -ErrorAction SilentlyContinue
     Remove-Item (Join-Path $Runtime "gap-mintty.bat") -Force -ErrorAction SilentlyContinue
     Remove-Item (Join-Path $Runtime "gapicon.ico") -Force -ErrorAction SilentlyContinue
 
+    Write-Host "Checking runtime..."
     $RuntimeGap = Join-Path $Runtime "gap.bat"
     if (-not (Test-Path $RuntimeGap)) {
         throw "GAP launcher was not copied"
@@ -97,6 +134,7 @@ try {
         [Text.UTF8Encoding]::new($false)
     )
 
+    Write-Host "Compressing runtime..."
     $ArchiveName = "GAPLink-runtime-$SystemID.tar.gz"
     $Archive = Join-Path $OutputDirectory $ArchiveName
     tar -czf $Archive -C $OutputDirectory runtime

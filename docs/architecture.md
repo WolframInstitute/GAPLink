@@ -34,5 +34,6 @@ The [private process protocol](protocol.md) defines the messages exchanged with 
 - [Sessions report loaded package versions](decisions/0010-loaded-packages.md).
 - [The Windows install uses its bundled Bash launcher](decisions/0011-windows-launcher.md).
 - [Tags publish the paclet already verified by CI](decisions/0012-releases.md).
+- [CI builds and reuses checked runtime archives](decisions/0014-runtime-builds.md).
 
 Record each choice in `docs/decisions/` before writing that part of the project.

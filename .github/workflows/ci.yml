@@ -92,15 +92,36 @@ jobs:
       - name: Check out repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
+      - name: Restore runtime
+        id: runtime-cache
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: |
+            build/runtimes/${{ matrix.system-id }}/*.tar.gz*
+            ${{ matrix.system-id == 'Linux-x86-64' && 'build/runtime-sources/*.tar.gz' || '' }}
+          key: gaplink-runtime-${{ matrix.system-id }}-${{ hashFiles('scripts/build-runtime.sh') }}
+
       - name: Install Linux build tools
-        if: runner.os == 'Linux'
+        if: runner.os == 'Linux' && steps.runtime-cache.outputs.cache-hit != 'true'
         run: |
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends \
             build-essential curl patchelf zlib1g-dev
 
       - name: Build runtime
+        if: steps.runtime-cache.outputs.cache-hit != 'true'
         run: make runtime
+
+      - name: Check runtime archive
+        run: |
+          cd build/runtimes/${{ matrix.system-id }}
+          checksum=(*.sha256)
+          test "${#checksum[@]}" -eq 1
+          if command -v sha256sum >/dev/null 2>&1; then
+            sha256sum -c "${checksum[0]}"
+          else
+            shasum -a 256 -c "${checksum[0]}"
+          fi
 
       - name: Upload runtime
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
@@ -130,9 +151,26 @@ jobs:
       - name: Check out repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
+      - name: Restore runtime
+        id: runtime-cache
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: build/runtimes/Windows-x86-64/*.tar.gz*
+          key: gaplink-runtime-Windows-x86-64-${{ hashFiles('scripts/build-runtime-windows.ps1') }}
+
       - name: Build runtime
+        if: steps.runtime-cache.outputs.cache-hit != 'true'
         shell: pwsh
         run: ./scripts/build-runtime-windows.ps1
+
+      - name: Check runtime archive
+        shell: pwsh
+        run: |
+          $Archives = @(Get-ChildItem build/runtimes/Windows-x86-64/*.tar.gz)
+          if ($Archives.Count -ne 1) { throw "Expected one runtime archive" }
+          $Expected = (Get-Content "$($Archives[0].FullName).sha256").Split()[0]
+          $Actual = (Get-FileHash $Archives[0] -Algorithm SHA256).Hash.ToLowerInvariant()
+          if ($Actual -ne $Expected) { throw "Runtime checksum does not match" }
 
       - name: Upload runtime
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7

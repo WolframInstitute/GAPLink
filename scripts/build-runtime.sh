@@ -74,19 +74,39 @@ if command -v nproc >/dev/null 2>&1; then
 elif command -v sysctl >/dev/null 2>&1; then
     jobs=$(sysctl -n hw.ncpu)
 fi
+if ((jobs > 4)); then jobs=4; fi
+
+build_log="$output_dir/build.log"
+clean_env=(env -u CPATH -u CPPFLAGS -u LDFLAGS -u LIBRARY_PATH)
+gmp_prefix="$gap_root/extern/install/gmp"
+gmp_build="$gap_root/extern/build/gmp"
+mkdir -p "$gmp_build"
+touch "$gap_root/extern/gmp/doc/gmp.info"
+
+printf 'Building GMP for %s...\n' "$system_id"
+if ! (
+    cd "$gmp_build"
+    "${clean_env[@]}" "$gap_root/extern/gmp/configure" \
+        --prefix="$gmp_prefix" ABI=64 --disable-static --enable-shared
+    "${clean_env[@]}" make -j "$jobs"
+    "${clean_env[@]}" make install
+) > "$build_log" 2>&1; then
+    tail -80 "$build_log" >&2
+    fail "GMP build failed"
+fi
 
 printf 'Building GAP %s for %s...\n' "$gap_version" "$system_id"
 if ! (
     cd "$gap_root"
-    env -u CPATH -u CPPFLAGS -u LDFLAGS -u LIBRARY_PATH \
-        ./configure --with-gmp=builtin --without-readline &&
-        env -u CPATH -u CPPFLAGS -u LDFLAGS -u LIBRARY_PATH \
-            make -j "$jobs"
-) > "$output_dir/build.log" 2>&1; then
-    tail -80 "$output_dir/build.log" >&2
+    "${clean_env[@]}" ./configure \
+        --with-gmp="$gmp_prefix" --without-readline
+    "${clean_env[@]}" make -j "$jobs"
+) >> "$build_log" 2>&1; then
+    tail -80 "$build_log" >&2
     fail "GAP build failed"
 fi
 
+printf 'Assembling runtime...\n'
 runtime="$output_dir/runtime"
 mkdir -p "$runtime/licenses/gap" "$runtime/licenses/gmp" "$runtime/pkg" "$runtime/syslib"
 install -m 755 "$gap_root/gap" "$runtime/gap"
@@ -152,6 +172,7 @@ printf '%s\n' \
 ) > "$runtime/EXECUTABLES.txt"
 grep -qx gap "$runtime/EXECUTABLES.txt" || fail "GAP is not executable"
 
+printf 'Checking runtime...\n'
 version=$(
     "$runtime/gap" -q -n -A -r --nointeract \
         -c 'Print(GAPInfo.Version,"\n");QUIT_GAP(0);'
@@ -160,6 +181,7 @@ version=$(
 "$runtime/gap" -q -n -A -r --nointeract \
     -c 'if LoadPackage("gapdoc")=fail then Error("gapdoc failed");fi;QUIT_GAP(0);'
 
+printf 'Compressing runtime...\n'
 archive="$output_dir/GAPLink-runtime-$system_id.tar.gz"
 tar -czf "$archive" -C "$output_dir" runtime
 printf '%s  %s\n' "$(sha256 "$archive")" "$(basename "$archive")" \
