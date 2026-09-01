@@ -37,5 +37,4 @@ Projects can record every GAP package version in use without depending on how it
 
 ## Sources
 
-- [GAP 4.14 package state](https://github.com/gap-system/gap/blob/v4.14.0/lib/package.gd)
-- [GAP 4.16 package state](https://github.com/gap-system/gap/blob/v4.16.1/lib/package.gd)
+- [GAP package state](https://github.com/gap-system/gap/blob/master/lib/package.gd)

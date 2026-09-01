@@ -108,8 +108,8 @@ capture, or discard GAP output. The same protocol design can be tested on every 
 
 ## Sources
 
-- [GAP command-line options](https://github.com/gap-system/gap/blob/v4.16.1/lib/system.g)
-- [GAP error catching](https://github.com/gap-system/gap/blob/v4.16.1/src/error.c)
+- [GAP command-line options](https://github.com/gap-system/gap/blob/master/lib/system.g)
+- [GAP error catching](https://github.com/gap-system/gap/blob/master/src/error.c)
 - [GAP streams](https://docs.gap-system.org/doc/ref/chap10_mj.html)
 - [GAP JupyterKernel](https://github.com/gap-packages/JupyterKernel)
 - [Wolfram Language StartProcess](https://reference.wolfram.com/language/ref/StartProcess.html)

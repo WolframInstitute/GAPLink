@@ -19,8 +19,8 @@ It supports these GAP release lines:
 - GAP 4.15.x
 - GAP 4.16.x
 
-The first CI matrix uses GAP 4.14.0, 4.15.1, and 4.16.1. Tests use exact versions rather
-than a moving `latest` version.
+CI tests one pinned version from each supported release line. Tests do not use a moving
+`latest` version.
 
 GAP 4.14 is the minimum. An older version returns `Failure["GAPStartFailed", ...]`. A newer
 stable GAP 4 release may start, but GAPLink warns that it has not been tested. GAP 5 needs a
@@ -61,7 +61,7 @@ tests are added. Release notes can state which systems and versions have been ve
 
 ## Checks
 
-- Test GAP 4.14.0, 4.15.1, and 4.16.1 on Linux x86-64.
+- Test each supported GAP release line on Linux x86-64.
 - Reject a GAP release older than 4.14.
 - Warn for a newer stable GAP 4 release that has not been tested.
 - Report the GAP version, system, processor, and packages.
@@ -75,6 +75,6 @@ tests are added. Release notes can state which systems and versions have been ve
 - [GAP on Linux](https://www.gap-system.org/install/linux/)
 - [GAP on macOS](https://www.gap-system.org/install/mac/)
 - [GAP on Windows](https://www.gap-system.org/install/windows/)
-- [GAP 4.16.1](https://github.com/gap-system/gap/releases/tag/v4.16.1)
+- [GAP releases](https://github.com/gap-system/gap/releases)
 - [Setup GAP for GitHub Actions](https://github.com/gap-actions/setup-gap)
 - [Wolfram Language StartProcess](https://reference.wolfram.com/language/ref/StartProcess.html)

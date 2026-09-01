@@ -8,7 +8,7 @@ Notable changes are listed here.
 
 ### Added
 
-- Added pinned GAP 4.16.1 runtime builds, checksums, and platform paclet checks.
+- Added pinned GAP runtime builds, checksums, and platform paclet checks.
 
 ### Changed
 
@@ -21,7 +21,7 @@ Notable changes are listed here.
 ### Added
 
 - Added the initial paclet, development commands, and CI.
-- Added live tests for GAP 4.14.0, 4.15.1, and 4.16.1.
+- Added live tests for the supported GAP releases.
 - Added `StartGAPSession` and `GAPSession`.
 - Added `GAPCall` for named functions and basic values.
 - Added `GAPEvaluate` for GAP code.

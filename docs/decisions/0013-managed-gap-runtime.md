@@ -23,8 +23,8 @@ the Wolfram Language code and a tested GAP runtime.
 - On macOS and Linux, GAPLink restores runtime execute permissions before first use.
 - A GAP install on `PATH` remains a fallback for source checkouts and unsupported systems.
 
-The first runtime uses GAP 4.16.1. GAPLink still accepts the system GAP versions listed in
-[decision 0007](0007-supported-versions-and-systems.md).
+Each release pins one tested GAP version. GAPLink still accepts the system GAP versions
+listed in [decision 0007](0007-supported-versions-and-systems.md).
 
 The first runtime contains GAP core and GAP's required packages. Other GAP packages may be
 added later. `GAPPackageAvailableQ` and `LoadGAPPackage` report what the active GAP runtime
@@ -75,6 +75,6 @@ select another GAP executable when needed.
 
 - [Wolfram Language paclets](https://reference.wolfram.com/language/tutorial/Paclets.html)
 - [Wolfram System ID](https://reference.wolfram.com/language/ref/%24SystemID.html)
-- [GAP 4.16.1](https://github.com/gap-system/gap/releases/tag/v4.16.1)
-- [GAP copyright information](https://github.com/gap-system/gap/blob/v4.16.1/COPYRIGHT)
+- [GAP releases](https://github.com/gap-system/gap/releases)
+- [GAP copyright information](https://github.com/gap-system/gap/blob/master/COPYRIGHT)
 - [GAP Windows build](https://github.com/gap-system/gap-windows/blob/641bc30aaccd0dd672bcd383105a90b034088d00/release_gap.sh)

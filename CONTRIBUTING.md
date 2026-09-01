@@ -109,7 +109,7 @@ the organization secret is ready:
 gh secret delete WOLFRAMSCRIPT_ENTITLEMENTID --repo WolframInstitute/GAPLink
 ```
 
-CI tests startup with GAP 4.14.0, 4.15.1, and 4.16.1.
+CI tests startup with each supported GAP release line.
 
 ## Releases
 

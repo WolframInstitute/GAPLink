@@ -12,7 +12,7 @@ but GAPLink works with any Wolfram Language project.
 - Wolfram Language 15.0 or later
 - Linux x86-64, macOS on Intel or Apple silicon, or Windows x86-64
 
-Release paclets include GAP 4.16.1 and its required packages.
+Release paclets include a tested GAP runtime and its required packages.
 
 ## Install
 
@@ -23,17 +23,26 @@ PacletInstall[
     "https://www.wolframcloud.com/obj/wolframinstitute/GAPLink/" <>
         "WolframInstitute__GAPLink-" <> $SystemID <> ".paclet"
 ];
-Needs["WolframInstitute`GAPLink`"];
 ```
-
-The paclet contains GAP. Starting a session does not download anything.
 
 Stable `.paclet` files and checksums are also on
 [GitHub Releases](https://github.com/WolframInstitute/GAPLink/releases).
 
+See the [paclet resource page](https://www.wolframcloud.com/obj/wolframinstitute/DeployedResources/Paclet/WolframInstitute/GAPLink)
+for more examples.
+
+## Load from source
+
+```wolfram
+PacletDirectoryLoad["/path/to/GAPLink/GAPLink"];
+```
+
+Source checkouts need a separate GAP installation.
+
 ## Quick test
 
-Start a fresh kernel after installation:
+Start a fresh kernel when testing an installed paclet. After loading from source, continue
+in the same kernel:
 
 ```wolfram
 Needs["WolframInstitute`GAPLink`"];
@@ -48,7 +57,8 @@ GAPPackageAvailableQ[session, "gapdoc"]
 DeleteObject[session];
 ```
 
-The results should be `"4.16.1"`, `55`, `24`, and `True`.
+`session["Version"]` reports the bundled GAP version. The other results should be `55`,
+`24`, and `True`.
 
 ## Packages
 
@@ -82,17 +92,6 @@ The result is `24`. Values that cannot be copied stay in GAP as `GAPObject` valu
 An explicit path takes priority over the GAP included in the paclet:
 
 ```wolfram
-session = StartGAPSession["Executable" -> "/path/to/gap"];
-```
-
-## Load from source
-
-Source checkouts need a separate GAP installation:
-
-```wolfram
-PacletDirectoryLoad["/path/to/GAPLink/GAPLink"];
-Needs["WolframInstitute`GAPLink`"];
-
 session = StartGAPSession["Executable" -> "/path/to/gap"];
 ```
 
