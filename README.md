@@ -125,7 +125,7 @@ Install GAP and put `gap` on `PATH`, then run:
 make test-gap
 ```
 
-This starts GAP and tests calls and value conversion. To set the executable path:
+This tests sessions, calls, packages, and failures. To set the executable path:
 
 ```bash
 GAPLINK_GAP=/path/to/gap make test-gap
