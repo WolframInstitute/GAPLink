@@ -4,6 +4,8 @@ Notable changes are listed here.
 
 ## [Unreleased]
 
+## [0.1.0] - 2026-09-01
+
 ### Added
 
 - Added the initial paclet, development commands, and CI.
@@ -17,7 +19,6 @@ Notable changes are listed here.
 - Added tagged GitHub releases and Wolfram Cloud publishing.
 - Added reference pages for every public symbol.
 - Added `GAPObject` for values kept in GAP.
-- Fixed direct empty-list arguments to `GAPCall`.
 - Added a persistent request loop and clean session shutdown.
 - Added decisions for project scope, GAP installation, how GAP runs, the first public API,
   value conversion, error handling, supported systems, and the process protocol.
@@ -29,7 +30,9 @@ Notable changes are listed here.
 
 ### Fixed
 
+- Fixed direct empty-list arguments to `GAPCall`.
 - Fixed the GAP startup handshake.
 - Removed repeated macOS warnings during startup.
 
-[Unreleased]: https://github.com/WolframInstitute/GAPLink/commits/main
+[Unreleased]: https://github.com/WolframInstitute/GAPLink/compare/v0.1.0...HEAD
+[0.1.0]: https://github.com/WolframInstitute/GAPLink/releases/tag/v0.1.0
