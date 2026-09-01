@@ -17,10 +17,12 @@ different file.
 - GitHub Releases stores the paclets, checksums, and GAP source archives.
 - Wolfram Cloud receives the same paclets after the GitHub release succeeds.
 - The cloud keeps one latest file for each system.
+- The cloud also receives a public page with the system-aware install command.
 - GitHub keeps the versioned files. Published versions are not replaced.
 - Credentials stay in GitHub secrets.
 
-GAPLink does not publish a separate resource page.
+The page is a static file because GAPLink has one paclet for each system. Its install command
+selects the correct file with `$SystemID`.
 
 ## Other options
 

@@ -9,6 +9,7 @@ Notable changes are listed here.
 ### Added
 
 - Added pinned GAP runtime builds, checksums, and platform paclet checks.
+- Added a cloud page with the platform install command.
 
 ### Changed
 

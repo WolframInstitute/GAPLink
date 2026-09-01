@@ -65,4 +65,5 @@ jobs:
           echo '### Published to Wolfram Cloud' >> "$GITHUB_STEP_SUMMARY"
           echo '' >> "$GITHUB_STEP_SUMMARY"
           echo '- Archives: ${{ steps.publish.outputs.archives }}' >> "$GITHUB_STEP_SUMMARY"
+          echo '- Page: ${{ steps.publish.outputs.page }}' >> "$GITHUB_STEP_SUMMARY"
           echo '- Install: `PacletInstall["${{ steps.publish.outputs.prefix }}" <> $SystemID <> ".paclet"]`' >> "$GITHUB_STEP_SUMMARY"
