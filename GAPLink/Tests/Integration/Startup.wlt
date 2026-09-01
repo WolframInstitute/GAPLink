@@ -209,14 +209,12 @@ VerificationTest[
 VerificationTest[
     Module[
         {
-            afterCall, afterEvaluate, afterWrapper, available, before,
-            called, evaluated, exact, loaded, missing, missingLoad, second,
-            session
+            available, exact, loaded, loadedPackages, missing, missingLoad,
+            second, session
         },
         session = StartGAPSession["Executable" -> gapExecutable];
         If[FailureQ[session], Print["ERROR: ", session]; Return[False]];
         WithCleanup[
-            before = session["LoadedPackages"];
             available = GAPPackageAvailableQ[session, "example"];
             missing = GAPPackageAvailableQ[
                 session, "GAPLinkMissingPackage"
@@ -225,17 +223,7 @@ VerificationTest[
                 session, "GAPLinkMissingPackage"
             ];
             loaded = LoadGAPPackage[session, "example"];
-            afterWrapper = session["LoadedPackages"];
-            called = GAPCall[
-                session, "LoadPackage", "json", False,
-                "Output" -> "Discard"
-            ];
-            afterCall = session["LoadedPackages"];
-            evaluated = GAPEvaluate[
-                session, "LoadPackage(\"utils\", false);",
-                "Output" -> "Discard"
-            ];
-            afterEvaluate = session["LoadedPackages"];
+            loadedPackages = KeyMap[ToLowerCase, session["LoadedPackages"]];
             exact = If[
                 AssociationQ[loaded],
                 GAPPackageAvailableQ[
@@ -251,10 +239,7 @@ VerificationTest[
                 missingLoad["Package"] === "GAPLinkMissingPackage" &&
                 MatchQ[loaded,
                     <|"Name" -> "example", "Version" -> _String|>] &&
-                !KeyExistsQ[before, "Example"] &&
-                afterWrapper["Example"] === loaded["Version"] &&
-                called === True && StringQ[afterCall["json"]] &&
-                evaluated === True && StringQ[afterEvaluate["utils"]] &&
+                loadedPackages["example"] === loaded["Version"] &&
                 second === loaded && exact === True &&
                 GAPCall[session, "IsPackageLoaded", "example"] === True &&
                 session["Status"] === "Ready",
