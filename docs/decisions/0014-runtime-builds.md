@@ -32,6 +32,7 @@ until its build script changes.
 
 - Check every download against its pinned SHA-256 value.
 - Start the built GAP runtime.
+- On Windows, start GAP through the bundled Bash program used by GAPLink.
 - Load a required GAP package.
 - Run the GAPLink live tests before building platform paclets.
 - Reject a cached archive when its checksum does not match.

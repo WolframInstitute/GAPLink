@@ -114,16 +114,28 @@ try {
     Remove-Item (Join-Path $Runtime "gapicon.ico") -Force -ErrorAction SilentlyContinue
 
     Write-Host "Checking runtime..."
-    $RuntimeGap = Join-Path $Runtime "gap.bat"
-    if (-not (Test-Path $RuntimeGap)) {
-        throw "GAP launcher was not copied"
+    $RuntimeBash = Join-Path $Runtime "runtime/bin/bash.exe"
+    $RuntimeExecutable = Join-Path $RuntimeGapRoot "gap.exe"
+    $RuntimeFiles = @(
+        (Join-Path $Runtime "gap.bat"), $RuntimeBash, $RuntimeExecutable
+    )
+    if ($RuntimeFiles | Where-Object { -not (Test-Path $_) } | Select-Object -First 1) {
+        throw "GAP runtime is incomplete"
     }
-    $FoundVersion = (& $RuntimeGap -q -n -A -r --nointeract `
-        -c 'Print(GAPInfo.Version,"\n");QUIT_GAP(0);').Trim()
-    if ($LASTEXITCODE -ne 0 -or $FoundVersion -ne $Version) {
+    $BashScript = 'export PATH="/usr/local/bin:/usr/bin:/bin:$PATH"; ' +
+        'gap=$(/usr/bin/cygpath -u "$1"); shift; exec "$gap" "$@"'
+    $GapArguments = @(
+        "--noprofile", "--norc", "-c", $BashScript, "GAPLink",
+        $RuntimeExecutable, "-q", "-n", "-A", "-r", "--nointeract"
+    )
+    $FoundVersion = & $RuntimeBash @GapArguments `
+        -c 'Print(GAPInfo.Version,"\n");QUIT_GAP(0);'
+    $GapExitCode = $LASTEXITCODE
+    $FoundVersion = ($FoundVersion -join "`n").Trim()
+    if ($GapExitCode -ne 0 -or $FoundVersion -ne $Version) {
         throw "Built GAP returned version $FoundVersion"
     }
-    & $RuntimeGap -q -n -A -r --nointeract `
+    & $RuntimeBash @GapArguments `
         -c 'if LoadPackage("gapdoc")=fail then Error("gapdoc failed");fi;QUIT_GAP(0);'
     if ($LASTEXITCODE -ne 0) {
         throw "Required GAP package failed"
