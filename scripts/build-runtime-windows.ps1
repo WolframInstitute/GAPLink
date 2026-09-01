@@ -38,16 +38,29 @@ $Installer = Get-VerifiedFile $InstallerName $InstallerHash
 $PackagesArchive = Get-VerifiedFile $PackagesName $PackagesHash
 
 $TemporaryRoot = if ($env:RUNNER_TEMP) { $env:RUNNER_TEMP } else { [IO.Path]::GetTempPath() }
-$InstallDirectory = Join-Path $TemporaryRoot "gaplink-$([Guid]::NewGuid())"
-$InstallLog = "$InstallDirectory.log"
+$RequestedInstallDirectory = Join-Path $TemporaryRoot "gaplink-$([Guid]::NewGuid())"
+$DefaultInstallDirectories = @(
+    (Join-Path $env:LOCALAPPDATA "GAP-$Version")
+    (Join-Path $env:ProgramFiles "GAP-$Version")
+)
+$AllowedInstallDirectories = @($RequestedInstallDirectory) + $DefaultInstallDirectories |
+    ForEach-Object { [IO.Path]::GetFullPath($_).TrimEnd([IO.Path]::DirectorySeparatorChar) }
+$UninstallKey = "HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall\GAP-${Version}_is1"
+$InstallDirectory = $null
+$InstallLog = "$RequestedInstallDirectory.log"
 $Runtime = Join-Path $OutputDirectory "runtime"
 $RequiredPackages = @("gapdoc", "perfgrp", "primgrp", "smallgrp", "transgrp")
+
+if ((Test-Path $UninstallKey) -or
+    ($AllowedInstallDirectories | Where-Object { Test-Path $_ } | Select-Object -First 1)) {
+    throw "GAP $Version is already installed"
+}
 
 try {
     Write-Host "Installing GAP..."
     $Arguments = @(
         "/VERYSILENT", "/SUPPRESSMSGBOXES", "/NORESTART", "/NOICONS",
-        "/CURRENTUSER", "/DIR=$InstallDirectory", "/LOG=$InstallLog"
+        "/CURRENTUSER", "/DIR=$RequestedInstallDirectory", "/LOG=$InstallLog"
     )
     $Process = Start-Process $Installer -ArgumentList $Arguments -Wait -PassThru
     if ($Process.ExitCode -ne 0) {
@@ -55,16 +68,26 @@ try {
         throw "GAP installer failed with exit code $($Process.ExitCode)"
     }
 
+    if (-not (Test-Path $UninstallKey)) {
+        if (Test-Path $InstallLog) { Get-Content $InstallLog -Tail 80 }
+        throw "GAP install path was not recorded"
+    }
+    $InstallDirectory = (Get-ItemProperty $UninstallKey).InstallLocation
+    if ([string]::IsNullOrWhiteSpace($InstallDirectory)) {
+        throw "GAP install path is empty"
+    }
+    $InstallDirectory = [IO.Path]::GetFullPath($InstallDirectory).TrimEnd(
+        [IO.Path]::DirectorySeparatorChar
+    )
+    if ($InstallDirectory -notin $AllowedInstallDirectories) {
+        throw "GAP installer used an unexpected path: $InstallDirectory"
+    }
+
     $GapRoot = Join-Path $InstallDirectory "runtime/opt/gap-$Version"
     $GapExecutable = Join-Path $GapRoot "gap.exe"
     if (-not (Test-Path $GapExecutable)) {
-        $GapExecutable = Get-ChildItem $InstallDirectory -Filter "gap.exe" -File -Recurse |
-            Select-Object -First 1
-        if ($null -eq $GapExecutable) {
-            if (Test-Path $InstallLog) { Get-Content $InstallLog -Tail 80 }
-            throw "GAP executable was not installed"
-        }
-        $GapRoot = $GapExecutable.DirectoryName
+        if (Test-Path $InstallLog) { Get-Content $InstallLog -Tail 80 }
+        throw "GAP executable was not installed"
     }
 
     Write-Host "Copying runtime..."
@@ -150,12 +173,14 @@ try {
     Write-Host "OK: $Runtime | GAP $FoundVersion"
 }
 finally {
-    $Uninstaller = Join-Path $InstallDirectory "unins000.exe"
-    if (Test-Path $Uninstaller) {
-        Start-Process $Uninstaller `
-            -ArgumentList "/VERYSILENT /SUPPRESSMSGBOXES /NORESTART" -Wait
-    }
-    if (Test-Path $InstallDirectory) {
-        Remove-Item $InstallDirectory -Recurse -Force
+    if ($null -ne $InstallDirectory -and $InstallDirectory -in $AllowedInstallDirectories) {
+        $Uninstaller = Join-Path $InstallDirectory "unins000.exe"
+        if (Test-Path $Uninstaller) {
+            Start-Process $Uninstaller `
+                -ArgumentList "/VERYSILENT /SUPPRESSMSGBOXES /NORESTART" -Wait
+        }
+        if (Test-Path $InstallDirectory) {
+            Remove-Item $InstallDirectory -Recurse -Force
+        }
     }
 }

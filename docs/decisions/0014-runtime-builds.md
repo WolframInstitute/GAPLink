@@ -15,7 +15,8 @@ need.
 - Unix builds compile the pinned GAP and GMP sources.
 - The runtime build skips GMP's full test suite. It checks the downloads, starts GAP, and
   loads a required package instead.
-- Windows builds use the official GAP installer and copy only the required packages.
+- Windows builds read the path used by the official GAP installer and copy only the
+  required packages.
 - CI caches each runtime archive by system and build script.
 - CI checks each cached archive before uploading it.
 - A cache miss builds a new runtime.
