@@ -13,14 +13,14 @@ different file.
 
 - A `vMAJOR.MINOR.PATCH` tag must match `PacletInfo.wl`.
 - The tagged commit must have a successful `main` CI run.
-- The tag workflow reuses that CI artifact and creates its SHA-256 checksum.
-- GitHub Releases stores the paclet and checksum.
-- Wolfram Cloud receives the same paclet after the GitHub release succeeds.
-- The cloud keeps one versioned archive and one link to the latest release.
-- A versioned archive can be retried from the same commit. Another commit cannot replace it.
+- The tag workflow reuses the four platform paclets that passed CI.
+- GitHub Releases stores the paclets, checksums, and GAP source archives.
+- Wolfram Cloud receives the same paclets after the GitHub release succeeds.
+- The cloud keeps one latest file for each system.
+- GitHub keeps the versioned files. Published versions are not replaced.
 - Credentials stay in GitHub secrets.
 
-GAPLink publishes only the paclet archive. It does not publish a separate resource page.
+GAPLink does not publish a separate resource page.
 
 ## Other options
 
@@ -30,11 +30,12 @@ GAPLink publishes only the paclet archive. It does not publish a separate resour
 
 ## Result
 
-Tags publish one verified file in both places. Normal pushes do not publish.
+Tags publish the verified platform files. Normal pushes do not publish.
 
 ## Checks
 
 - Reject a tag that does not match the paclet version.
 - Reject a tagged commit without successful `main` CI.
-- Check the release checksum against the paclet.
-- Retry the same release without changing its versioned cloud archive.
+- Check each release checksum.
+- Include the source for the bundled GAP files.
+- Retry a cloud upload from the same GitHub release.

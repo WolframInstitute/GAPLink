@@ -23,7 +23,7 @@ The [private process protocol](protocol.md) defines the messages exchanged with 
 ## Accepted choices
 
 - [GAPLink is a separate, general project](decisions/0001-project-scope.md).
-- [Users install GAP](decisions/0002-gap-installation.md).
+- [Release paclets include GAP](decisions/0013-managed-gap-runtime.md).
 - [The first version runs GAP as a separate program](decisions/0003-backend.md).
 - [The first public API uses explicit GAP sessions](decisions/0004-public-api.md).
 - [Values are copied or kept in GAP](decisions/0005-value-conversion.md).
@@ -34,9 +34,5 @@ The [private process protocol](protocol.md) defines the messages exchanged with 
 - [Sessions report loaded package versions](decisions/0010-loaded-packages.md).
 - [The Windows install uses its bundled Bash launcher](decisions/0011-windows-launcher.md).
 - [Tags publish the paclet already verified by CI](decisions/0012-releases.md).
-
-## Still to decide
-
-- whether a future release includes GAP
 
 Record each choice in `docs/decisions/` before writing that part of the project.

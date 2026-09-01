@@ -4,6 +4,18 @@ Notable changes are listed here.
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-09-01
+
+### Added
+
+- Added pinned GAP 4.16.1 runtime builds, checksums, and platform paclet checks.
+
+### Changed
+
+- Chose one GAPLink release paclet with GAP for each supported system.
+- Prefer GAP included in the paclet when starting a session.
+- Restore executable permissions removed during paclet installation.
+
 ## [0.1.0] - 2026-09-01
 
 ### Added
@@ -34,5 +46,6 @@ Notable changes are listed here.
 - Fixed the GAP startup handshake.
 - Removed repeated macOS warnings during startup.
 
-[Unreleased]: https://github.com/WolframInstitute/GAPLink/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/WolframInstitute/GAPLink/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/WolframInstitute/GAPLink/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/WolframInstitute/GAPLink/releases/tag/v0.1.0

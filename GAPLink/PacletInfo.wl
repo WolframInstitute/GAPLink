@@ -1,7 +1,7 @@
 PacletObject[<|
     "Name" -> "WolframInstitute/GAPLink",
     "PublisherID" -> "WolframInstitute",
-    "Version" -> "0.1.0",
+    "Version" -> "0.2.0",
     "WolframVersion" -> "15.0+",
     "Description" -> "Low-level Wolfram Language interoperability with GAP",
     "Creator" -> "Wolfram Institute",

@@ -1,6 +1,6 @@
 # Decision 0002: GAP installation
 
-- Status: Accepted
+- Status: Superseded by [decision 0013](0013-managed-gap-runtime.md)
 - Date: 2026-08-27
 - Owner: GAPLink maintainers
 

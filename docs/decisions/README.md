@@ -5,7 +5,7 @@ This folder keeps important project choices.
 Copy `0000-template.md` and use the next number. If an accepted choice changes, add a new
 file instead of rewriting the old one.
 
-Accepted:
+Records:
 
 - [0001: Project scope](0001-project-scope.md)
 - [0002: GAP installation](0002-gap-installation.md)
@@ -19,7 +19,4 @@ Accepted:
 - [0010: Loaded packages](0010-loaded-packages.md)
 - [0011: Windows GAP launcher](0011-windows-launcher.md)
 - [0012: Releases](0012-releases.md)
-
-Next:
-
-- whether a future release includes GAP
+- [0013: Managed GAP runtime](0013-managed-gap-runtime.md)

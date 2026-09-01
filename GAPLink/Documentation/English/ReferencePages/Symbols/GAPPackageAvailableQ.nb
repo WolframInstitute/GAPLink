@@ -59,7 +59,7 @@ Notebook[{
         ], "Input"],
         Cell[BoxData[
             RowBox[{"GAPPackageAvailableQ", "[",
-                RowBox[{"session", ",", "\"example\""}], "]"}]
+                RowBox[{"session", ",", "\"gapdoc\""}], "]"}]
         ], "Input"],
         Cell[BoxData[
             RowBox[{"DeleteObject", "[", "session", "]"}]

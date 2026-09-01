@@ -9,25 +9,34 @@ setting[name_String] := scriptRequire[
     name, " is not set"
 ];
 
-publishedCommit[object_CloudObject] := Replace[
-    Quiet @ Options[object, MetaInformation],
-    {
-        {MetaInformation -> data : (_Association | {___Rule})} :>
-            Lookup[data, "Commit", None],
-        _ -> None
-    }
-];
-
 Module[
     {
-        paclet, archive, version, commit, hash, versioned, latest, objects,
-        result, urls
+        archive, archives, commit, hash, latest, paclet, prefix, result,
+        systems, urls, version
     },
     paclet = PacletObject[File[pacletDirectory]];
     scriptRequire[paclet, PacletObjectQ, "Cannot read source paclet"];
     version = paclet["Version"];
-    archive = archivePath[version];
-    scriptRequire[FileExistsQ[archive], TrueQ, "Run make build first"];
+    systems = {
+        "Linux-x86-64", "MacOSX-ARM64", "MacOSX-x86-64",
+        "Windows-x86-64"
+    };
+    archives = FileNames["*.paclet", buildDirectory];
+    archives = Table[
+        archive = Select[
+            archives,
+            FileNameTake[#] === StringRiffle[
+                {archivePrefix, system, version}, "-"
+            ] <> ".paclet" &
+        ];
+        scriptRequire[
+            archive,
+            Length[#] === 1 &,
+            "Expected one paclet for ", system
+        ];
+        First[archive],
+        {system, systems}
+    ];
 
     scriptRequire[
         Quiet @ Check[
@@ -43,30 +52,23 @@ Module[
     scriptRequire[$CloudConnected, TrueQ, "Could not connect to Wolfram Cloud"];
 
     commit = setting["RELEASE_COMMIT"];
-    hash = IntegerString[FileHash[archive, "SHA256"], 16, 64];
-    versioned = CloudObject[
-        FileNameJoin[{"GAPLink", FileNameTake[archive]}]
-    ];
-    latest = CloudObject[
-        FileNameJoin[{"GAPLink", archivePrefix <> ".paclet"}]
-    ];
-
-    If[TrueQ[FileExistsQ[versioned]],
-        scriptRequire[
-            publishedCommit[versioned],
-            SameQ[#, commit] &,
-            "Version ", version, " is already published"
-        ]
-    ];
-
-    objects = {versioned, latest};
-    Scan[
-        Function[object,
+    urls = MapThread[
+        Function[{file, system},
+            hash = IntegerString[FileHash[file, "SHA256"], 16, 64];
+            latest = CloudObject[
+                FileNameJoin[{
+                    "GAPLink", archivePrefix <> "-" <> system <> ".paclet"
+                }]
+            ];
             result = Quiet @ Check[
-                CopyFile[archive, object, OverwriteTarget -> True],
+                CopyFile[file, latest, OverwriteTarget -> True],
                 $Failed
             ];
-            scriptRequire[result, MatchQ[_CloudObject], "Could not upload paclet"];
+            scriptRequire[
+                result,
+                MatchQ[_CloudObject],
+                "Could not upload paclet"
+            ];
             scriptRequire[
                 Quiet @ Check[
                     SetOptions[
@@ -74,24 +76,31 @@ Module[
                         Permissions -> "Public",
                         MetaInformation -> <|
                             "Commit" -> commit,
-                            "SHA256" -> hash
+                            "SHA256" -> hash,
+                            "Version" -> version,
+                            "SystemID" -> system
                         |>
                     ],
                     $Failed
                 ],
                 # =!= $Failed &,
                 "Could not set cloud object options"
-            ]
+            ];
+            First[result]
         ],
-        objects
+        {archives, systems}
     ];
-
-    urls = First /@ objects;
+    prefix = StringReplace[
+        First[urls],
+        systems[[1]] <> ".paclet" ~~ EndOfString -> ""
+    ];
     writeGitHubOutput[
-        "archive" -> urls[[1]],
-        "latest" -> urls[[2]],
-        "sha256" -> hash
+        "archives" -> Length[urls],
+        "prefix" -> prefix
     ];
-    Print["OK: ", urls[[1]]];
-    Print["Install with PacletInstall[\"", urls[[2]], "\"]"]
+    Scan[Print["OK: ", #] &, urls];
+    Print[
+        "Install with PacletInstall[\"", prefix,
+        "\" <> $SystemID <> \".paclet\"]"
+    ]
 ]

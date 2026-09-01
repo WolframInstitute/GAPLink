@@ -22,7 +22,7 @@ jobs:
     name: Publish to Wolfram Cloud
     if: github.event.workflow_run.conclusion == 'success'
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 45
     container:
       image: wolframresearch/wolframengine:15.0
       options: --user root
@@ -64,6 +64,5 @@ jobs:
         run: |
           echo '### Published to Wolfram Cloud' >> "$GITHUB_STEP_SUMMARY"
           echo '' >> "$GITHUB_STEP_SUMMARY"
-          echo '- Archive: ${{ steps.publish.outputs.archive }}' >> "$GITHUB_STEP_SUMMARY"
-          echo '- Install: `PacletInstall["${{ steps.publish.outputs.latest }}"]`' >> "$GITHUB_STEP_SUMMARY"
-          echo '- SHA-256: `${{ steps.publish.outputs.sha256 }}`' >> "$GITHUB_STEP_SUMMARY"
+          echo '- Archives: ${{ steps.publish.outputs.archives }}' >> "$GITHUB_STEP_SUMMARY"
+          echo '- Install: `PacletInstall["${{ steps.publish.outputs.prefix }}" <> $SystemID <> ".paclet"]`' >> "$GITHUB_STEP_SUMMARY"

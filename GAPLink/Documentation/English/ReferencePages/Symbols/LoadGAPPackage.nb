@@ -59,7 +59,7 @@ Notebook[{
         ], "Input"],
         Cell[BoxData[
             RowBox[{"LoadGAPPackage", "[",
-                RowBox[{"session", ",", "\"example\""}], "]"}]
+                RowBox[{"session", ",", "\"gapdoc\""}], "]"}]
         ], "Input"],
         Cell[BoxData[
             RowBox[{"session", "[", "\"LoadedPackages\"", "]"}]

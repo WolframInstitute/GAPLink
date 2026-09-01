@@ -32,6 +32,16 @@ make all
 GAPLINK_GAP=/path/to/gap make test-gap
 ```
 
+To build and test a release paclet for the current system:
+
+```bash
+make runtime
+make bundle
+make verify-bundle
+```
+
+Runtime builds also need a C/C++ compiler, `curl`, and `tar`. Paclet bundles need `zip`.
+
 The official Windows `gap.bat` layout is supported. Native Windows still needs the live
 session test before it is listed as verified.
 
@@ -116,14 +126,15 @@ Before tagging a release:
 
 1. Update the version in `GAPLink/PacletInfo.wl` and `CITATION.cff`.
 2. Move the changelog entries into a version section.
-3. Run `make all`.
-4. Push `main` and wait for CI.
-5. Push an annotated `v<version>` tag.
+3. Review the licenses for every included runtime file.
+4. Run `make all`.
+5. Push `main` and wait for all platform jobs.
+6. Push an annotated `v<version>` tag.
 
 ```bash
-git tag -a v0.1.0 -m "v0.1.0"
-git push origin v0.1.0
+git tag -a v0.2.0 -m "v0.2.0"
+git push origin v0.2.0
 ```
 
-The tag creates a GitHub release with the verified paclet and its checksum. The same paclet
-is then uploaded to Wolfram Cloud.
+The tag creates a GitHub release with the platform paclets, checksums, and GAP source
+archives. The platform paclets are then uploaded to Wolfram Cloud.

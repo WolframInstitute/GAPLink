@@ -252,24 +252,24 @@ VerificationTest[
         session = StartGAPSession["Executable" -> gapExecutable];
         If[FailureQ[session], Print["ERROR: ", session]; Return[{"Start GAP"}]];
         WithCleanup[
-            available = GAPPackageAvailableQ[session, "example"];
+            available = GAPPackageAvailableQ[session, "gapdoc"];
             missing = GAPPackageAvailableQ[
                 session, "GAPLinkMissingPackage"
             ];
             missingLoad = LoadGAPPackage[
                 session, "GAPLinkMissingPackage"
             ];
-            loaded = LoadGAPPackage[session, "example"];
+            loaded = LoadGAPPackage[session, "gapdoc"];
             loadedPackages = KeyMap[ToLowerCase, session["LoadedPackages"]];
             exact = If[
                 AssociationQ[loaded],
                 GAPPackageAvailableQ[
-                    session, "example",
+                    session, "gapdoc",
                     "Version" -> "=" <> loaded["Version"]
                 ],
                 False
             ];
-            second = LoadGAPPackage[session, "example"];
+            second = LoadGAPPackage[session, "gapdoc"];
             failedChecks[
                 "Available package" -> available === True,
                 "Missing package" -> missing === False,
@@ -277,14 +277,14 @@ VerificationTest[
                     missingLoad, Failure["GAPPackageNotAvailable", _]
                 ] && missingLoad["Package"] === "GAPLinkMissingPackage",
                 "Load package" -> MatchQ[
-                    loaded, <|"Name" -> "example", "Version" -> _String|>
+                    loaded, <|"Name" -> "gapdoc", "Version" -> _String|>
                 ],
                 "Loaded package report" ->
-                    loadedPackages["example"] === loaded["Version"],
+                    loadedPackages["gapdoc"] === loaded["Version"],
                 "Repeated load" -> second === loaded,
                 "Exact version" -> exact === True,
                 "GAP package state" ->
-                    GAPCall[session, "IsPackageLoaded", "example"] === True,
+                    GAPCall[session, "IsPackageLoaded", "gapdoc"] === True,
                 "Session status" -> session["Status"] === "Ready"
             ],
             DeleteObject[session]

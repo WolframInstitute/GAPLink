@@ -20,7 +20,7 @@ jobs:
   release:
     name: Publish GitHub release
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 45
     permissions:
       actions: read
       contents: write
@@ -56,15 +56,36 @@ jobs:
           run-id: ${{ steps.release.outputs.run }}
           github-token: ${{ github.token }}
 
-      - name: Create checksum
+      - name: Download GAP sources
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
+        with:
+          name: GAPLink-runtime-sources
+          path: dist
+          run-id: ${{ steps.release.outputs.run }}
+          github-token: ${{ github.token }}
+
+      - name: Check files and create checksums
         run: |
           cd dist
-          paclets=(*.paclet)
-          if [ "${#paclets[@]}" -ne 1 ] || [ ! -f "${paclets[0]}" ]; then
-            echo "::error title=Invalid artifact::Expected one paclet."
-            exit 1
-          fi
-          sha256sum "${paclets[0]}" > "${paclets[0]}.sha256"
+          gap_version=$(sed -n 's/^gap_version=//p' ../scripts/build-runtime.sh)
+          for system in Linux-x86-64 MacOSX-ARM64 MacOSX-x86-64 Windows-x86-64; do
+            file="WolframInstitute__GAPLink-$system-${{ steps.release.outputs.version }}.paclet"
+            test -f "$file" || {
+              echo "::error title=Missing paclet::$file was not found."
+              exit 1
+            }
+          done
+          for file in \
+            "gap-$gap_version-core.tar.gz" \
+            "packages-required-v$gap_version.tar.gz"; do
+            test -f "$file" || {
+              echo "::error title=Missing source::$file was not found."
+              exit 1
+            }
+          done
+          for file in *.paclet *.tar.gz; do
+            sha256sum "$file" > "$file.sha256"
+          done
 
       - name: Keep release files
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7

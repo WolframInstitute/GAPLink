@@ -18,7 +18,7 @@ Notebook[{
             ], "InlineFormula"],
             " uses the GAP program at path."
         }], "Usage"],
-        Cell["GAP must already be installed.", "Notes"],
+        Cell["Release paclets include GAP. Source checkouts need a GAP install.", "Notes"],
         Cell["The following options can be given:", "Notes"],
         Cell[BoxData[GridBox[{
             {Cell["      ", "TableRowIcon"],
@@ -30,7 +30,7 @@ Notebook[{
                 Cell[BoxData["30"], "TableText"],
                 Cell["Maximum startup time in seconds", "TableText"]}
         }]], "3ColumnTableMod"],
-        Cell["Automatic searches GAPLINK_GAP and PATH.", "Notes"],
+        Cell["Automatic uses the included GAP, then searches PATH and common locations.", "Notes"],
         Cell[TextData[{
             "Use ",
             Cell[BoxData[

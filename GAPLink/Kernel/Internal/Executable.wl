@@ -1,6 +1,7 @@
 (* ::Package:: *)
 
 PackageScoped["gapLinkFindGAPExecutable"]
+PackageScoped["gapLinkBundledGAPExecutables"]
 
 gapExecutableFailure[path_] := Failure[
     "GAPStartFailed",
@@ -16,6 +17,9 @@ gapExecutableFailure[path_] := Failure[
 
 gapExecutableNames["Windows"] := {"gap.exe", "gap.bat"}
 gapExecutableNames[_] := {"gap"}
+
+gapBundledExecutableName["Windows"] := "gap.bat"
+gapBundledExecutableName[_] := "gap"
 
 gapPathExecutables[path_String, system_String] := Module[{directories},
     directories = DeleteCases[
@@ -49,6 +53,36 @@ gapCommonExecutables[_] := {
     "/usr/local/bin/gap", "/usr/bin/gap", "/snap/bin/gap"
 }
 
+gapPrepareBundledRuntime[runtime_String, "Windows"] := runtime
+
+gapPrepareBundledRuntime[runtime_String, system_String] :=
+    gapPrepareBundledRuntime[runtime, system] = Module[{files, manifest},
+        manifest = FileNameJoin[{runtime, "EXECUTABLES.txt"}];
+        files = Select[
+            Quiet @ Check[Import[manifest, "Lines"], {"gap"}],
+            StringQ[#] && # =!= "" &
+        ];
+        files = Select[FileNameJoin[{runtime, #}] & /@ files, FileExistsQ];
+        If[files =!= {}, Quiet @ Check[
+            RunProcess[Join[{"/bin/chmod", "a+x"}, files]],
+            Null
+        ]];
+        runtime
+    ]
+
+gapLinkBundledGAPExecutables[] := gapLinkBundledGAPExecutables[
+    Quiet @ Check[PacletFind["WolframInstitute/GAPLink"], {}],
+    $OperatingSystem
+]
+
+gapLinkBundledGAPExecutables[paclets_List, system_String] :=
+    FileNameJoin[{
+        gapPrepareBundledRuntime[#, system], gapBundledExecutableName[system]
+    }] & /@ Cases[
+        Quiet @ Check[#["AssetLocation", "GAPRuntime"] & /@ paclets, {}],
+        _String
+    ]
+
 gapFirstExecutable[paths_List, requested_] := Replace[
     SelectFirst[
         ExpandFileName /@ DeleteDuplicates @ Select[paths, StringQ[#] && # =!= "" &],
@@ -58,13 +92,18 @@ gapFirstExecutable[paths_List, requested_] := Replace[
     _Missing :> gapExecutableFailure[requested]
 ]
 
-gapLinkFindGAPExecutable[path_: Automatic] := gapLinkFindGAPExecutable[
-    path, Environment["PATH"], gapCommonExecutables[$OperatingSystem],
-    $OperatingSystem
+gapLinkFindGAPExecutable[path_String] := gapFirstExecutable[{path}, path]
+
+gapLinkFindGAPExecutable[Automatic] := gapLinkFindGAPExecutable[
+    Automatic, gapLinkBundledGAPExecutables[], Environment["PATH"],
+    gapCommonExecutables[$OperatingSystem], $OperatingSystem
 ]
 
-gapLinkFindGAPExecutable[path_String, _, _, _] :=
+gapLinkFindGAPExecutable[path_String, _, _, _, _] :=
     gapFirstExecutable[{path}, path]
 
-gapLinkFindGAPExecutable[Automatic, path_, common_List, system_String] :=
-    gapFirstExecutable[Join[gapPathExecutables[path, system], common], Automatic]
+gapLinkFindGAPExecutable[
+    Automatic, bundled_List, path_, common_List, system_String
+] := gapFirstExecutable[
+    Join[bundled, gapPathExecutables[path, system], common], Automatic
+]
