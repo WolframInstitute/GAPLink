@@ -4,7 +4,7 @@ Notable changes are listed here.
 
 ## [Unreleased]
 
-## [0.2.0] - 2026-09-01
+## [0.2.0] - 2026-09-02
 
 ### Added
 
@@ -17,6 +17,7 @@ Notable changes are listed here.
 - Prefer GAP included in the paclet when starting a session.
 - Restore executable permissions removed during paclet installation.
 - Made platform runtime builds faster and reusable in CI.
+- Reduced Wolfram kernel starts in CI and publishing.
 
 ## [0.1.0] - 2026-09-01
 

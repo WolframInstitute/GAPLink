@@ -45,34 +45,6 @@ jobs:
           test -x scripts/build-runtime.sh
           bash -n scripts/build-runtime.sh
 
-  paclet:
-    name: Check, test, build, and verify (Wolfram 15.0)
-    needs: repository
-    outputs:
-      version: ${{ steps.build.outputs.version }}
-    runs-on: ubuntu-latest
-    timeout-minutes: 30
-    container:
-      image: wolframresearch/wolframengine:15.0
-      options: --user root
-    env:
-      WOLFRAMSCRIPT_ENTITLEMENTID: ${{ secrets.WOLFRAMSCRIPT_ENTITLEMENTID }}
-      QT_QPA_PLATFORM: offscreen
-    steps:
-      - name: Check out repository
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
-
-      - name: Check Wolfram Engine entitlement
-        run: |
-          if [ -z "${WOLFRAMSCRIPT_ENTITLEMENTID:-}" ]; then
-            echo "::error title=Missing Wolfram license::Add WOLFRAMSCRIPT_ENTITLEMENTID as a repository secret; see CONTRIBUTING.md."
-            exit 1
-          fi
-
-      - name: Check, test, build, and verify
-        id: build
-        run: wolframscript -file scripts/all.wls
-
   runtime-unix:
     name: GAP runtime (${{ matrix.system-id }})
     needs: repository
@@ -181,28 +153,21 @@ jobs:
           compression-level: 0
           retention-days: 30
 
-  gap:
-    name: GAP ${{ matrix.gap-version }}
-    needs: paclet
+  gap-build:
+    name: Build GAP ${{ matrix.gap-version }}
+    needs: repository
     runs-on: ubuntu-latest
     timeout-minutes: 45
     strategy:
       fail-fast: false
-      max-parallel: 1
       matrix:
         gap-version: ["4.14.0", "4.15.1", "4.16.1"]
     container:
       image: wolframresearch/wolframengine:15.0
       options: --user root
-    env:
-      WOLFRAMSCRIPT_ENTITLEMENTID: ${{ secrets.WOLFRAMSCRIPT_ENTITLEMENTID }}
-      QT_QPA_PLATFORM: offscreen
     steps:
       - name: Check out repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
-
-      - name: Check Wolfram Engine entitlement
-        run: test -n "${WOLFRAMSCRIPT_ENTITLEMENTID:-}"
 
       - name: Install GAP build tools
         run: |
@@ -216,17 +181,26 @@ jobs:
         with:
           gap-version: ${{ matrix.gap-version }}
 
-      - name: Test GAP
+      - name: Archive GAP
         run: |
-          GAPLINK_GAP="$GAPROOT/gap" \
-          GAPLINK_EXPECTED_GAP_VERSION="${{ matrix.gap-version }}" \
-          make test-gap
+          mkdir -p build/gap-versions
+          tar -czf "build/gap-versions/${{ matrix.gap-version }}.tar.gz" \
+            -C "$GAPROOT" .
 
-  bundles:
-    name: Build platform paclets
-    needs: [paclet, runtime-unix, runtime-windows, gap]
+      - name: Upload GAP
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: GAPLink-GAP-${{ matrix.gap-version }}
+          path: build/gap-versions/${{ matrix.gap-version }}.tar.gz
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: 30
+
+  paclet:
+    name: Check, test, and build platform paclets
+    needs: [runtime-unix, runtime-windows, gap-build]
     runs-on: ubuntu-latest
-    timeout-minutes: 60
+    timeout-minutes: 90
     container:
       image: wolframresearch/wolframengine:15.0
       options: --user root
@@ -237,10 +211,18 @@ jobs:
       - name: Check out repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
-      - name: Install archive tools
+      - name: Check Wolfram Engine entitlement
+        run: |
+          if [ -z "${WOLFRAMSCRIPT_ENTITLEMENTID:-}" ]; then
+            echo "::error title=Missing Wolfram license::Add WOLFRAMSCRIPT_ENTITLEMENTID as a repository secret; see CONTRIBUTING.md."
+            exit 1
+          fi
+
+      - name: Install build tools
         run: |
           apt-get update
-          apt-get install -y --no-install-recommends make unzip zip
+          apt-get install -y --no-install-recommends \
+            libgmp-dev libreadline-dev unzip zip zlib1g-dev
 
       - name: Download runtimes
         uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
@@ -255,6 +237,13 @@ jobs:
           name: GAPLink-runtime-MacOSX-ARM64
           path: build/runtime-artifacts
 
+      - name: Download tested GAP versions
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
+        with:
+          pattern: GAPLink-GAP-*
+          path: build/gap-artifacts
+          merge-multiple: true
+
       - name: Check and extract runtimes
         run: |
           cd build/runtime-artifacts
@@ -266,20 +255,18 @@ jobs:
             tar -xzf "$archive" -C "../ci-runtimes/$system"
           done
 
-      - name: Build platform paclets
+      - name: Extract tested GAP versions
         run: |
-          for system in Linux-x86-64 MacOSX-ARM64 MacOSX-x86-64 Windows-x86-64; do
-            make bundle \
-              RUNTIME="$PWD/build/ci-runtimes/$system/runtime" \
-              SYSTEM_ID="$system"
+          for archive in build/gap-artifacts/*.tar.gz; do
+            version=${archive##*/}
+            version=${version%.tar.gz}
+            mkdir -p "build/gap-versions/$version"
+            tar -xzf "$archive" -C "build/gap-versions/$version"
           done
 
-      - name: Test Linux paclet
-        run: |
-          GAPLINK_VERIFY_INSTALL=1 make verify-bundle
-          GAPLINK_GAP="$PWD/build/ci-runtimes/Linux-x86-64/runtime/gap" \
-          GAPLINK_EXPECTED_GAP_VERSION=4.16.1 \
-          make test-gap
+      - name: Check, test, and build
+        id: build
+        run: wolframscript -file scripts/ci.wls
 
       - name: Collect platform paclets
         run: |
@@ -289,7 +276,7 @@ jobs:
       - name: Upload platform paclets
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
-          name: GAPLink-${{ needs.paclet.outputs.version }}
+          name: GAPLink-${{ steps.build.outputs.version }}
           path: build/dist/*.paclet
           if-no-files-found: error
           compression-level: 0

@@ -20,3 +20,5 @@ Records:
 - [0011: Windows GAP launcher](0011-windows-launcher.md)
 - [0012: Releases](0012-releases.md)
 - [0013: Managed GAP runtime](0013-managed-gap-runtime.md)
+- [0014: Runtime builds](0014-runtime-builds.md)
+- [0015: CI license use](0015-ci-license.md)
