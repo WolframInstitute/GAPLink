@@ -13,6 +13,7 @@ Notable changes are listed here.
 - Added `GAPEvaluate` for GAP code.
 - Added package checks and package loading.
 - Added loaded package versions to GAP sessions.
+- Added command support for the official GAP Windows launcher.
 - Added reference pages for every public symbol.
 - Added `GAPObject` for values kept in GAP.
 - Fixed direct empty-list arguments to `GAPCall`.

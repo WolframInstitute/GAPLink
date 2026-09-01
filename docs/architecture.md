@@ -32,6 +32,7 @@ The [private process protocol](protocol.md) defines the messages exchanged with 
 - [The process uses private framed messages and keeps GAP output separate](decisions/0008-process-protocol-and-output.md).
 - [GAPLink checks and loads packages through GAP](decisions/0009-gap-packages.md).
 - [Sessions report loaded package versions](decisions/0010-loaded-packages.md).
+- [The Windows install uses its bundled Bash launcher](decisions/0011-windows-launcher.md).
 
 ## Still to decide
 

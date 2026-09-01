@@ -7,6 +7,7 @@ PackageScoped["gapLinkStopProcess"]
 PackageScoped["gapLinkValidateGAPHello"]
 
 $gapLinkStartupTimeout = 30;
+$gapLinkGAPArguments = {"-q", "-n", "-A", "-r", "--nointeract"};
 
 gapStartFailure[reason_String, message_String, data_: <||>] := Failure[
     "GAPStartFailed",
@@ -24,18 +25,57 @@ gapLinkStartupFile[] := PacletObject[
     "WolframInstitute/GAPLink"
 ]["AssetLocation", "GAPStartup"]
 
+gapWindowsCommand[launcher_String, startup_String] := Module[
+    {bash, gaps, root = DirectoryName[launcher]},
+    bash = FileNameJoin[{root, "runtime", "bin", "bash.exe"}];
+    gaps = FileNames[
+        "gap.exe",
+        Select[
+            FileNames["gap-*", FileNameJoin[{root, "runtime", "opt"}]],
+            DirectoryQ
+        ]
+    ];
+    If[FileType[bash] =!= File || gaps === {},
+        Return @ gapStartFailure[
+            "WindowsLauncherNotFound",
+            "GAP's Windows files could not be found.",
+            <|"Path" -> launcher|>
+        ]
+    ];
+    If[Length[gaps] =!= 1,
+        Return @ gapStartFailure[
+            "WindowsLauncherAmbiguous",
+            "More than one Windows GAP program was found.",
+            <|"Path" -> launcher|>
+        ]
+    ];
+    Join[
+        {
+            bash, "--noprofile", "--norc", "-c",
+            "export PATH=\"/usr/local/bin:/usr/bin:/bin:$PATH\" && " <>
+                "gap=$(/usr/bin/cygpath -u \"$1\") && " <>
+                "startup=$(/usr/bin/cygpath -u \"$2\") && " <>
+                "shift 2 && exec \"$gap\" \"$@\" \"$startup\"",
+            "GAPLink", First[gaps], startup
+        },
+        $gapLinkGAPArguments
+    ]
+]
+
 gapLinkGAPCommand[executable_String] := Module[{startup = gapLinkStartupFile[]},
     Which[
-        MemberQ[{"bat", "cmd"}, ToLowerCase @ FileExtension[executable]],
-            gapStartFailure[
-                "ShellLauncher", "GAP's batch launcher is not supported."
-            ],
         !FileExistsQ[startup],
             gapStartFailure[
                 "StartupFileNotFound", "The GAP startup file could not be found."
             ],
+        ToLowerCase @ FileExtension[executable] === "bat",
+            gapWindowsCommand[executable, startup],
+        ToLowerCase @ FileExtension[executable] === "cmd",
+            gapStartFailure[
+                "ShellLauncher", "GAP's command launcher is not supported."
+            ],
         True,
-            {executable, "-q", "-n", "-A", "-r", "--nointeract", startup}
+            Join[{executable}, $gapLinkGAPArguments, {startup}]
     ]
 ]
 
@@ -250,6 +290,11 @@ gapLinkStartGAP[path_: Automatic, time_: $gapLinkStartupTimeout] := Module[
 
     token = ToLowerCase @ StringReplace[CreateUUID[], "-" -> ""];
     environment = Append[Association @ GetEnvironment[], "GAPLINK_TOKEN" -> token];
+    If[ToLowerCase @ FileExtension[executable] === "bat",
+        environment = Join[
+            environment, <|"BASH_ENV" -> "", "ENV" -> "", "TERM" -> ""|>
+        ]
+    ];
     process = Quiet @ Check[
         StartProcess[command, ProcessEnvironment -> environment],
         $Failed

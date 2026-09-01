@@ -17,6 +17,7 @@ Accepted:
 - [0008: Process protocol and output](0008-process-protocol-and-output.md)
 - [0009: GAP packages](0009-gap-packages.md)
 - [0010: Loaded packages](0010-loaded-packages.md)
+- [0011: Windows GAP launcher](0011-windows-launcher.md)
 
 Next:
 

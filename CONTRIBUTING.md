@@ -32,7 +32,8 @@ make all
 GAPLINK_GAP=/path/to/gap make test-gap
 ```
 
-The Windows `gap.bat` launcher is not supported yet.
+The official Windows `gap.bat` layout is supported. Native Windows still needs the live
+session test before it is listed as verified.
 
 To lint selected Wolfram Language files:
 
