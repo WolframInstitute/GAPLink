@@ -50,7 +50,13 @@ runTests[files_List] := Module[{reports, passed, failed, runtimeFailures},
         Scan[
             Function[report,
                 Scan[
-                    If[#["Outcome"] =!= "Success", Print["FAIL: ", #["TestID"]]] &,
+                    If[#["Outcome"] =!= "Success",
+                        Print[
+                            "FAIL: ", #["TestID"],
+                            "\n  Actual: ", #["ActualOutput"],
+                            "\n  Expected: ", #["ExpectedOutput"]
+                        ]
+                    ] &,
                     Values[report["TestResults"]]
                 ]
             ],

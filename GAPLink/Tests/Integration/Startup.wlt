@@ -12,10 +12,15 @@ expectedVersion = Replace[
     {version_String /; version =!= "" :> version, _ -> Automatic}
 ];
 
+failedChecks[checks__Rule] := Cases[
+    {checks},
+    (name_String -> result_) /; !TrueQ[result] :> name
+]
+
 VerificationTest[
-    Module[{closed, details, loaded, process, session, state, valid},
+    Module[{details, failures, loaded, process, session, state},
         session = StartGAPSession["Executable" -> gapExecutable];
-        If[FailureQ[session], Print["ERROR: ", session]; Return[False]];
+        If[FailureQ[session], Print["ERROR: ", session]; Return[{"Start GAP"}]];
         WithCleanup[
             state = sessionData[session];
             details = state["Info"];
@@ -26,31 +31,37 @@ VerificationTest[
                 If[TrueQ[details["Tested"]], "", " (untested)"], " | ",
                 details["System"], " ", details["Processor"]
             ];
-            valid = session["Status"] === "Ready" &&
-                state["NextRequestID"] === 2 &&
-                details["ProtocolVersion"] === 1 &&
-                MemberQ[{True, False}, details["Tested"]] &&
-                MatchQ[session["Packages"], {___String}] &&
-                AssociationQ[loaded] &&
-                MatchQ[Normal[loaded], {(_String -> _String) ...}] &&
-                (expectedVersion === Automatic ||
-                    session["Version"] === expectedVersion);
+            failures = failedChecks[
+                "Session status" -> session["Status"] === "Ready",
+                "Request ID" -> state["NextRequestID"] === 2,
+                "Protocol version" -> details["ProtocolVersion"] === 1,
+                "Tested version" -> MemberQ[{True, False}, details["Tested"]],
+                "Package list" -> MatchQ[session["Packages"], {___String}],
+                "Loaded packages" -> AssociationQ[loaded] &&
+                    MatchQ[Normal[loaded], {(_String -> _String) ...}],
+                "GAP version" -> expectedVersion === Automatic ||
+                    session["Version"] === expectedVersion
+            ];
             DeleteObject[session];
-            closed = session["Status"] === "Closed" &&
-                ProcessStatus[process] =!= "Running" &&
-                ProcessInformation[process, "ExitCode"] === 0;
-            valid && closed,
+            Join[
+                failures,
+                failedChecks[
+                    "Closed status" -> session["Status"] === "Closed",
+                    "Process stopped" -> ProcessStatus[process] =!= "Running",
+                    "Exit code" -> ProcessInformation[process, "ExitCode"] === 0
+                ]
+            ],
             DeleteObject[session]
         ]
     ],
-    True,
+    {},
     TestID -> "Start-And-Close-GAP-Session"
 ]
 
 VerificationTest[
     Module[{afterError, captured, error, missing, result, session, values},
         session = StartGAPSession["Executable" -> gapExecutable];
-        If[FailureQ[session], Print["ERROR: ", session]; Return[False]];
+        If[FailureQ[session], Print["ERROR: ", session]; Return[{"Start GAP"}]];
         WithCleanup[
             values = {
                 12345678901234567890, -2/3, True, False,
@@ -69,34 +80,39 @@ VerificationTest[
                 session, "QuoInt", 1, 0, "Output" -> "Capture"
             ];
             afterError = GAPCall[session, "Sum", {1, 2, 3}];
-            result === values &&
-                captured === <|
+            failedChecks[
+                "Values" -> result === values,
+                "Captured output" -> captured === <|
                     "Result" -> Null,
                     "StandardOutput" -> "hello",
                     "StandardError" -> ""
-                |> &&
-                MatchQ[missing, Failure["GAPFunctionNotFound", _]] &&
-                MatchQ[error, Failure["GAPError", _]] &&
-                StringContainsQ[error["StandardError"], "Error"] &&
-                afterError === 6 && session["Status"] === "Ready",
+                |>,
+                "Missing function" ->
+                    MatchQ[missing, Failure["GAPFunctionNotFound", _]],
+                "GAP error" -> MatchQ[error, Failure["GAPError", _]],
+                "Error output" ->
+                    StringContainsQ[error["StandardError"], "Error"],
+                "Call after error" -> afterError === 6,
+                "Session status" -> session["Status"] === "Ready"
+            ],
             DeleteObject[session]
         ]
     ],
-    True,
+    {},
     TestID -> "Call-GAP-Functions"
 ]
 
 VerificationTest[
     Module[
         {
-            cross, cyclic, deleted, forced, group, mutable, nested, record,
-            second, session, stale, staleResult, unsupported, valid
+            cross, cyclic, deleted, failures, forced, group, mutable, nested,
+            record, second, session, stale, staleResult, unsupported
         },
         session = StartGAPSession["Executable" -> gapExecutable];
         second = StartGAPSession["Executable" -> gapExecutable];
         If[FailureQ[session] || FailureQ[second],
             DeleteObject /@ Select[{session, second}, Head[#] === GAPSession &];
-            Return[False]
+            Return[{"Start GAP"}]
         ];
         WithCleanup[
             group = GAPCall[session, "SymmetricGroup", 4];
@@ -115,37 +131,52 @@ VerificationTest[
             ];
             cross = GAPCall[second, "Size", group];
             unsupported = Normal[group];
-            valid = Head[group] === GAPObject &&
-                GAPCall[session, "Size", group] === 24 &&
-                Normal[forced] === 42 &&
-                MatchQ[nested, {_GAPObject, 7}] &&
-                GAPCall[session, "Size", nested[[1]]] === 24 &&
-                MatchQ[record, <|"group" -> _GAPObject, "n" -> 9|>] &&
-                GAPCall[session, "Size", record["group"]] === 24 &&
-                GAPCall[session, "Add", mutable, 3] === Null &&
-                Normal[mutable] === {1, 2, 3} &&
-                GAPCall[session, "Add", cyclic, cyclic] === Null &&
-                MatchQ[Normal[cyclic], Failure["GAPUnsupportedValue", _]] &&
-                MatchQ[cross, Failure["GAPInvalidObject", _]] &&
-                MatchQ[unsupported, Failure["GAPUnsupportedValue", _]] &&
-                session["Status"] === "Ready" &&
-                second["Status"] === "Ready";
+            failures = failedChecks[
+                "GAP object" -> Head[group] === GAPObject,
+                "Object call" -> GAPCall[session, "Size", group] === 24,
+                "Forced object" -> Normal[forced] === 42,
+                "Nested object" -> MatchQ[nested, {_GAPObject, 7}] &&
+                    GAPCall[session, "Size", nested[[1]]] === 24,
+                "Record object" ->
+                    MatchQ[record, <|"group" -> _GAPObject, "n" -> 9|>] &&
+                    GAPCall[session, "Size", record["group"]] === 24,
+                "Mutable object" ->
+                    GAPCall[session, "Add", mutable, 3] === Null &&
+                    Normal[mutable] === {1, 2, 3},
+                "Cyclic object" ->
+                    GAPCall[session, "Add", cyclic, cyclic] === Null &&
+                    MatchQ[
+                        Normal[cyclic], Failure["GAPUnsupportedValue", _]
+                    ],
+                "Cross-session object" ->
+                    MatchQ[cross, Failure["GAPInvalidObject", _]],
+                "Unsupported object" ->
+                    MatchQ[unsupported, Failure["GAPUnsupportedValue", _]],
+                "First session status" -> session["Status"] === "Ready",
+                "Second session status" -> second["Status"] === "Ready"
+            ];
             DeleteObject[group];
             deleted = GAPCall[session, "Size", group];
             DeleteObject /@ {forced, mutable, cyclic};
             stale = GAPCall[session, "SymmetricGroup", 3];
             DeleteObject[session];
             staleResult = Normal[stale];
-            valid &&
-                MatchQ[deleted, Failure["GAPInvalidObject", _]] &&
-                DeleteObject[group] === Null &&
-                MatchQ[staleResult, Failure["GAPInvalidObject", _]] &&
-                DeleteObject[stale] === Null &&
-                session["Status"] === "Closed",
+            Join[
+                failures,
+                failedChecks[
+                    "Deleted object" ->
+                        MatchQ[deleted, Failure["GAPInvalidObject", _]],
+                    "Repeated delete" -> DeleteObject[group] === Null,
+                    "Stale object" ->
+                        MatchQ[staleResult, Failure["GAPInvalidObject", _]],
+                    "Delete stale object" -> DeleteObject[stale] === Null,
+                    "Closed session" -> session["Status"] === "Closed"
+                ]
+            ],
             DeleteObject /@ {session, second}
         ]
     ],
-    True,
+    {},
     TestID -> "Use-GAP-Objects"
 ]
 
@@ -156,7 +187,7 @@ VerificationTest[
             session, syntax, value
         },
         session = StartGAPSession["Executable" -> gapExecutable];
-        If[FailureQ[session], Print["ERROR: ", session]; Return[False]];
+        If[FailureQ[session], Print["ERROR: ", session]; Return[{"Start GAP"}]];
         WithCleanup[
             value = GAPEvaluate[
                 session,
@@ -183,26 +214,32 @@ VerificationTest[
                 session, "Unbind(GAPLinkIntegrationValue);",
                 "Output" -> "Discard"
             ];
-            value === 16 && multiple === 7 && empty === Null &&
-                captured === <|
+            failedChecks[
+                "Value" -> value === 16,
+                "Multiple statements" -> multiple === 7,
+                "No value" -> empty === Null,
+                "Captured output" -> captured === <|
                     "Result" -> Null,
                     "StandardOutput" -> "hello",
                     "StandardError" -> ""
-                |> &&
-                Head[group] === GAPObject &&
-                GAPCall[session, "Size", group] === 24 &&
-                Head[forced] === GAPObject && Normal[forced] === 42 &&
-                MatchQ[error, Failure["GAPError", _]] &&
-                StringContainsQ[error["StandardError"], "Error"] &&
-                MatchQ[syntax, Failure["GAPError", _]] &&
-                MatchQ[syntax["StandardError"], _String | _ByteArray] &&
-                !MemberQ[{"", ByteArray[{}]}, syntax["StandardError"]] &&
-                afterError === 42 && session["Status"] === "Ready",
+                |>,
+                "GAP object" -> Head[group] === GAPObject &&
+                    GAPCall[session, "Size", group] === 24,
+                "Forced object" -> Head[forced] === GAPObject &&
+                    Normal[forced] === 42,
+                "GAP error" -> MatchQ[error, Failure["GAPError", _]] &&
+                    StringContainsQ[error["StandardError"], "Error"],
+                "Syntax error" -> MatchQ[syntax, Failure["GAPError", _]] &&
+                    MatchQ[syntax["StandardError"], _String | _ByteArray] &&
+                    !MemberQ[{"", ByteArray[{}]}, syntax["StandardError"]],
+                "Evaluate after error" -> afterError === 42,
+                "Session status" -> session["Status"] === "Ready"
+            ],
             DeleteObject /@ Cases[{group, forced}, _GAPObject];
             DeleteObject[session]
         ]
     ],
-    True,
+    {},
     TestID -> "Evaluate-GAP-Code"
 ]
 
@@ -213,7 +250,7 @@ VerificationTest[
             second, session
         },
         session = StartGAPSession["Executable" -> gapExecutable];
-        If[FailureQ[session], Print["ERROR: ", session]; Return[False]];
+        If[FailureQ[session], Print["ERROR: ", session]; Return[{"Start GAP"}]];
         WithCleanup[
             available = GAPPackageAvailableQ[session, "example"];
             missing = GAPPackageAvailableQ[
@@ -233,19 +270,26 @@ VerificationTest[
                 False
             ];
             second = LoadGAPPackage[session, "example"];
-            available === True && missing === False &&
-                MatchQ[missingLoad,
-                    Failure["GAPPackageNotAvailable", _]] &&
-                missingLoad["Package"] === "GAPLinkMissingPackage" &&
-                MatchQ[loaded,
-                    <|"Name" -> "example", "Version" -> _String|>] &&
-                loadedPackages["example"] === loaded["Version"] &&
-                second === loaded && exact === True &&
-                GAPCall[session, "IsPackageLoaded", "example"] === True &&
-                session["Status"] === "Ready",
+            failedChecks[
+                "Available package" -> available === True,
+                "Missing package" -> missing === False,
+                "Missing package failure" -> MatchQ[
+                    missingLoad, Failure["GAPPackageNotAvailable", _]
+                ] && missingLoad["Package"] === "GAPLinkMissingPackage",
+                "Load package" -> MatchQ[
+                    loaded, <|"Name" -> "example", "Version" -> _String|>
+                ],
+                "Loaded package report" ->
+                    loadedPackages["example"] === loaded["Version"],
+                "Repeated load" -> second === loaded,
+                "Exact version" -> exact === True,
+                "GAP package state" ->
+                    GAPCall[session, "IsPackageLoaded", "example"] === True,
+                "Session status" -> session["Status"] === "Ready"
+            ],
             DeleteObject[session]
         ]
     ],
-    True,
+    {},
     TestID -> "Use-GAP-Package"
 ]
