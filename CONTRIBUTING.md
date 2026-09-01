@@ -99,4 +99,31 @@ the organization secret is ready:
 gh secret delete WOLFRAMSCRIPT_ENTITLEMENTID --repo WolframInstitute/GAPLink
 ```
 
-CI tests startup with GAP 4.14.0, 4.15.1, and 4.16.1. It does not publish releases.
+CI tests startup with GAP 4.14.0, 4.15.1, and 4.16.1.
+
+## Releases
+
+Add the cloud account before the first release:
+
+```bash
+gh secret set WOLFRAM_CLOUD_USER --repo WolframInstitute/GAPLink
+gh secret set WOLFRAM_CLOUD_PASSWORD --repo WolframInstitute/GAPLink
+```
+
+The existing `WOLFRAMSCRIPT_ENTITLEMENTID` secret is also used to publish.
+
+Before tagging a release:
+
+1. Update the version in `GAPLink/PacletInfo.wl` and `CITATION.cff`.
+2. Move the changelog entries into a version section.
+3. Run `make all`.
+4. Push `main` and wait for CI.
+5. Push an annotated `v<version>` tag.
+
+```bash
+git tag -a v0.1.0 -m "v0.1.0"
+git push origin v0.1.0
+```
+
+The tag creates a GitHub release with the verified paclet and its checksum. The same paclet
+is then uploaded to Wolfram Cloud.

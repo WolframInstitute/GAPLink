@@ -18,6 +18,7 @@ Accepted:
 - [0009: GAP packages](0009-gap-packages.md)
 - [0010: Loaded packages](0010-loaded-packages.md)
 - [0011: Windows GAP launcher](0011-windows-launcher.md)
+- [0012: Releases](0012-releases.md)
 
 Next:
 

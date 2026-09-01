@@ -33,6 +33,7 @@ The [private process protocol](protocol.md) defines the messages exchanged with 
 - [GAPLink checks and loads packages through GAP](decisions/0009-gap-packages.md).
 - [Sessions report loaded package versions](decisions/0010-loaded-packages.md).
 - [The Windows install uses its bundled Bash launcher](decisions/0011-windows-launcher.md).
+- [Tags publish the paclet already verified by CI](decisions/0012-releases.md).
 
 ## Still to decide
 

@@ -1,6 +1,7 @@
 # GAPLink
 
 [![CI](https://github.com/WolframInstitute/GAPLink/actions/workflows/ci.yml/badge.svg)](https://github.com/WolframInstitute/GAPLink/actions/workflows/ci.yml)
+[![Publish](https://github.com/WolframInstitute/GAPLink/actions/workflows/publish.yml/badge.svg)](https://github.com/WolframInstitute/GAPLink/actions/workflows/publish.yml)
 
 GAPLink connects Wolfram Language to [GAP](https://www.gap-system.org/).
 PureMath is one possible user, but GAPLink is designed for any Wolfram Language project.
@@ -12,6 +13,18 @@ The project can start GAP, load packages, call functions, and run GAP code.
 - Wolfram Language 15.0 or later
 - `wolframscript`, Git, and `make` for development
 - GAP 4.14–4.16 to start a session
+
+## Install
+
+Install the latest tagged release:
+
+```wolfram
+PacletInstall["https://www.wolframcloud.com/obj/wolframinstitute/GAPLink/WolframInstitute__GAPLink.paclet"];
+Needs["WolframInstitute`GAPLink`"];
+```
+
+Stable `.paclet` files and checksums are also on
+[GitHub Releases](https://github.com/WolframInstitute/GAPLink/releases).
 
 ## Load from source
 

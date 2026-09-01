@@ -14,6 +14,7 @@ Notable changes are listed here.
 - Added package checks and package loading.
 - Added loaded package versions to GAP sessions.
 - Added command support for the official GAP Windows launcher.
+- Added tagged GitHub releases and Wolfram Cloud publishing.
 - Added reference pages for every public symbol.
 - Added `GAPObject` for values kept in GAP.
 - Fixed direct empty-list arguments to `GAPCall`.

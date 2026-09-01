@@ -1,0 +1,69 @@
+name: Publish
+
+on:
+  workflow_run:
+    workflows: [Release]
+    types: [completed]
+
+permissions:
+  actions: read
+  contents: read
+
+concurrency:
+  group: publish
+  cancel-in-progress: false
+
+defaults:
+  run:
+    shell: bash
+
+jobs:
+  publish:
+    name: Publish to Wolfram Cloud
+    if: github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    container:
+      image: wolframresearch/wolframengine:15.0
+      options: --user root
+    env:
+      WOLFRAMSCRIPT_ENTITLEMENTID: ${{ secrets.WOLFRAMSCRIPT_ENTITLEMENTID }}
+      WOLFRAM_CLOUD_USER: ${{ secrets.WOLFRAM_CLOUD_USER }}
+      WOLFRAM_CLOUD_PASSWORD: ${{ secrets.WOLFRAM_CLOUD_PASSWORD }}
+      RELEASE_COMMIT: ${{ github.event.workflow_run.head_sha }}
+      QT_QPA_PLATFORM: offscreen
+    steps:
+      - name: Check out tagged commit
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
+
+      - name: Check credentials
+        run: |
+          for name in WOLFRAMSCRIPT_ENTITLEMENTID WOLFRAM_CLOUD_USER WOLFRAM_CLOUD_PASSWORD; do
+            if [ -z "${!name:-}" ]; then
+              echo "::error title=Missing credential::$name is not set."
+              exit 1
+            fi
+          done
+          wolframscript -code 'Print["Wolfram Engine ", $Version, " | ", $LicenseType]'
+
+      - name: Download release files
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
+        with:
+          name: paclet
+          path: build
+          run-id: ${{ github.event.workflow_run.id }}
+          github-token: ${{ github.token }}
+
+      - name: Publish paclet
+        id: publish
+        run: wolframscript -file scripts/publish.wls
+
+      - name: Add summary
+        run: |
+          echo '### Published to Wolfram Cloud' >> "$GITHUB_STEP_SUMMARY"
+          echo '' >> "$GITHUB_STEP_SUMMARY"
+          echo '- Archive: ${{ steps.publish.outputs.archive }}' >> "$GITHUB_STEP_SUMMARY"
+          echo '- Install: `PacletInstall["${{ steps.publish.outputs.latest }}"]`' >> "$GITHUB_STEP_SUMMARY"
+          echo '- SHA-256: `${{ steps.publish.outputs.sha256 }}`' >> "$GITHUB_STEP_SUMMARY"

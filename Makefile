@@ -1,7 +1,7 @@
 WOLFRAMSCRIPT ?= wolframscript
 
 .DEFAULT_GOAL := help
-.PHONY: help all check test test-gap build verify lint hooks clean
+.PHONY: help all check test test-gap build verify publish lint hooks clean
 
 help:
 	@printf '  make %-10s %s\n' \
@@ -10,6 +10,7 @@ help:
 		test-gap 'startup test with installed GAP' \
 		build  '.paclet archive into build/' \
 		verify 'load the archive in a fresh kernel' \
+		publish 'upload the archive to Wolfram Cloud' \
 		all    'GAP-free full check in one kernel' \
 		lint   'CodeInspector on FILES="..."' \
 		hooks  'enable the repository Git hooks' \
@@ -32,6 +33,9 @@ build:
 
 verify:
 	$(WOLFRAMSCRIPT) -file scripts/verify.wls
+
+publish:
+	$(WOLFRAMSCRIPT) -file scripts/publish.wls
 
 lint:
 	$(WOLFRAMSCRIPT) -file scripts/lint.wls $(FILES)
