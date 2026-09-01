@@ -4,6 +4,14 @@ Notable changes are listed here.
 
 ## [Unreleased]
 
+### Changed
+
+- Reused the base build when creating platform paclets.
+
+### Fixed
+
+- Stopped CI documentation builds from opening extra licensed kernels.
+
 ## [0.2.0] - 2026-09-02
 
 ### Added

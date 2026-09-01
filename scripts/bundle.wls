@@ -5,9 +5,8 @@ Needs["PacletTools`"];
 
 Module[
     {
-        archive, archiveRoot, builtDirectory, executable, extensions,
-        info, output, paclet, result, runtime, runtimeTarget, stage,
-        systemID, systems, zip
+        archive, archiveRoot, base, executable, files, info, manifest,
+        output, paclet, runtime, runtimeTarget, systemID, systems, zip
     },
     systemID = Replace[Environment["GAPLINK_SYSTEM_ID"], Except[_String] | "" :> $SystemID];
     systems = {
@@ -30,60 +29,63 @@ Module[
         "Runtime executable not found: ", executable
     ];
 
-    stage = FileNameJoin[{buildDirectory, "staging", systemID}];
-    If[DirectoryQ[stage], DeleteDirectory[stage, DeleteContents -> True]];
-    If[!DirectoryQ[DirectoryName[stage]],
-        CreateDirectory[DirectoryName[stage], CreateIntermediateDirectories -> True]
-    ];
-    CopyDirectory[pacletDirectory, stage];
-    runtimeTarget = FileNameJoin[{stage, "Resources", "Runtime"}];
-    If[DirectoryQ[runtimeTarget], DeleteDirectory[runtimeTarget, DeleteContents -> True]];
-    CopyDirectory[runtime, runtimeTarget];
-
-    paclet = PacletObject[File[stage]];
-    scriptRequire[paclet, PacletObjectQ, "Cannot read staged paclet"];
+    base = FileNameJoin[{buildDirectory, archivePrefix}];
+    scriptRequire[base, DirectoryQ, "Run make build first"];
+    paclet = PacletObject[File[base]];
+    scriptRequire[paclet, PacletObjectQ, "Cannot read built paclet"];
     info = KeyDrop[First[paclet], "Location"];
-    extensions = Append[
-        info["Extensions"],
-        {
-            "Asset", "Root" -> "Resources",
-            "Assets" -> {{"GAPRuntime", "Runtime"}}
-        }
-    ];
     info = Join[
         info,
         <|
             "Qualifier" -> systemID,
             "SystemID" -> systemID,
-            "Extensions" -> extensions
+            "Extensions" -> Append[
+                info["Extensions"],
+                {
+                    "Asset", "Root" -> "Resources",
+                    "Assets" -> {{"GAPRuntime", "Runtime"}}
+                }
+            ]
         |>
     ];
-    Put[PacletObject[info], FileNameJoin[{stage, "PacletInfo.wl"}]];
-    scriptRequire[PacletValidate[stage], TrueQ, "Staged paclet does not validate"];
 
     output = FileNameJoin[{buildDirectory, "bundles", systemID}];
     If[DirectoryQ[output], DeleteDirectory[output, DeleteContents -> True]];
     CreateDirectory[output, CreateIntermediateDirectories -> True];
-    result = PacletBuild[stage, output];
-    scriptRequire[result, MatchQ[_Success], "PacletBuild failed"];
-    scriptRequire[
-        result["DocumentationBuildResults"],
-        Function[results,
-            results =!= {} && AllTrue[
-                results,
-                MatchQ[#, _Success] && TrueQ[#["FailedFilesCount"] === 0] &
-            ]
-        ],
-        "Documentation build failed"
-    ];
-    archive = result["PacletArchive"];
-    builtDirectory = Replace[result["BuildPacletDirectory"], File[path_] :> path];
-    scriptRequire[archive, FileExistsQ, "Archive was not created"];
-    scriptRequire[builtDirectory, DirectoryQ, "Built paclet was not created"];
-
+    archive = FileNameJoin[{
+        output,
+        StringRiffle[{archivePrefix, systemID, paclet["Version"]}, "-"] <> ".paclet"
+    }];
     archiveRoot = FileNameJoin[{output, FileBaseName[archive]}];
-    RenameDirectory[builtDirectory, archiveRoot];
-    DeleteFile[archive];
+    CopyDirectory[base, archiveRoot];
+    runtimeTarget = FileNameJoin[{archiveRoot, "Resources", "Runtime"}];
+    CopyDirectory[runtime, runtimeTarget];
+    Put[PacletObject[info], FileNameJoin[{archiveRoot, "PacletInfo.wl"}]];
+
+    files = PacletExtensionFiles[
+        File[archiveRoot],
+        "Relative" -> True,
+        SystemID -> All
+    ];
+    scriptRequire[files, AssociationQ, "Cannot list paclet files"];
+    files = DeleteDuplicates @ Flatten @ DeleteMissing @ Values[files];
+    manifest = <|"Files" -> Map[
+        <|
+            "File" -> File[#],
+            "Hash" -> FileHash[
+                FileNameJoin[{archiveRoot, #}],
+                "SHA256",
+                "HexString"
+            ]
+        |> &,
+        files
+    ]|>;
+    Put[manifest, FileNameJoin[{archiveRoot, "PacletManifest.wl"}]];
+    scriptRequire[
+        PacletValidate[archiveRoot],
+        TrueQ,
+        "Platform paclet does not validate"
+    ];
     zip = Quiet @ Check[
         RunProcess[
             {

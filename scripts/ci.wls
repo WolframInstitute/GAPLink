@@ -1,5 +1,19 @@
 #!/usr/bin/env wolframscript
 
+Needs["DocumentationBuild`Utils`"];
+
+DocumentationBuild`Utils`SafeNotebookExport =
+    Function[{file, notebook, timeout},
+        TimeConstrained[
+            Quiet @ CheckAbort[
+                Check[Export[file, notebook, "NB"]; "Success", $Failed],
+                $Failed
+            ],
+            timeout,
+            $Failed
+        ]
+    ];
+
 Module[
     {bundle, directory, gapRoot, root, runGAP, runtimeRoot, systems, testGAP,
         versions},
@@ -14,11 +28,13 @@ Module[
     testGAP = FileNameJoin[{directory, "test-gap.wls"}];
 
     runGAP[path_, version_] := (
+        Print["Testing GAP ", version, "..."];
         SetEnvironment["GAPLINK_GAP" -> path];
         SetEnvironment["GAPLINK_EXPECTED_GAP_VERSION" -> version];
         Get[testGAP]
     );
     bundle[system_] := (
+        Print["Building ", system, " paclet..."];
         SetEnvironment[
             "GAPLINK_RUNTIME" -> FileNameJoin[{runtimeRoot, system, "runtime"}]
         ];
@@ -27,6 +43,7 @@ Module[
     );
 
     Print["Wolfram Engine ", $Version, " | license type: ", $LicenseType];
+    Print["Building base paclet..."];
     Get[FileNameJoin[{directory, "build.wls"}]];
     Get[FileNameJoin[{directory, "verify.wls"}]];
     Get[FileNameJoin[{directory, "check.wl"}]];
@@ -37,6 +54,7 @@ Module[
     Scan[runGAP[FileNameJoin[{gapRoot, #, "gap"}], #] &, versions];
     Scan[bundle, systems];
 
+    Print["Testing bundled GAP..."];
     SetEnvironment["GAPLINK_VERIFY_INSTALL" -> "1"];
     SetEnvironment["GAPLINK_EXPECTED_GAP_VERSION" -> Last[versions]];
     Get[FileNameJoin[{directory, "verify-bundle.wls"}]];

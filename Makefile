@@ -37,7 +37,7 @@ build:
 runtime:
 	scripts/build-runtime.sh
 
-bundle:
+bundle: build
 	GAPLINK_RUNTIME="$(RUNTIME)" \
 	GAPLINK_SYSTEM_ID="$(SYSTEM_ID)" \
 	$(WOLFRAMSCRIPT) -file scripts/bundle.wls
