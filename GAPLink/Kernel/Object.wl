@@ -161,9 +161,14 @@ GAPObject /: Normal[object_GAPObject] := gapNormalObject[object]
 GAPObject /: DeleteObject[object_GAPObject] := gapDeleteObject[object]
 
 GAPObject /: MakeBoxes[object : GAPObject[key_String], form_] := With[
-    {status = Lookup[$gapLinkObjects, key, <|"Status" -> "Invalid"|>]["Status"]},
+    {
+        statusBox = ToBoxes[
+            Lookup[$gapLinkObjects, key, <|"Status" -> "Invalid"|>]["Status"],
+            form
+        ]
+    },
     InterpretationBox[
-        RowBox[{"GAPObject", "[", ToBoxes[status, form], "]"}],
+        RowBox[{"GAPObject", "[", statusBox, "]"}],
         object
     ]
 ]

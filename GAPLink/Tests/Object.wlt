@@ -27,3 +27,13 @@ VerificationTest[
     True,
     TestID -> "Import-Nested-Objects"
 ]
+
+VerificationTest[
+    FreeQ[
+        ToBoxes[GAPObject["missing"], StandardForm],
+        _ToBoxes,
+        Infinity
+    ],
+    True,
+    TestID -> "Format-Object"
+]

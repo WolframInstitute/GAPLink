@@ -8,6 +8,10 @@ Notable changes are listed here.
 
 - Show Wolfram Cloud publishing with the release checks.
 
+### Fixed
+
+- Fixed `GAPObject` display in notebooks.
+
 ## [0.2.0] - 2026-09-02
 
 ### Added
