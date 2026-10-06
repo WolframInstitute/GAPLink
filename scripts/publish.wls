@@ -1,6 +1,7 @@
 #!/usr/bin/env wolframscript
 
 Get[FileNameJoin[{DirectoryName[$InputFileName], "common.wl"}]];
+Get[FileNameJoin[{DirectoryName[$InputFileName], "publish.wl"}]];
 Needs["PacletTools`"];
 
 setting[name_String] := scriptRequire[
@@ -11,8 +12,8 @@ setting[name_String] := scriptRequire[
 
 Module[
     {
-        archive, archives, commit, hash, latest, paclet, page, pageFile,
-        prefix, result, systems, urls, version
+        archive, archives, commit, paclet, page, pageFile,
+        prefix, systems, urls, version
     },
     paclet = PacletObject[File[pacletDirectory]];
     scriptRequire[paclet, PacletObjectQ, "Cannot read source paclet"];
@@ -54,65 +55,27 @@ Module[
     commit = setting["RELEASE_COMMIT"];
     urls = MapThread[
         Function[{file, system},
-            hash = IntegerString[FileHash[file, "SHA256"], 16, 64];
-            latest = CloudObject[
+            publishCloudFile[file,
                 FileNameJoin[{
                     "GAPLink", archivePrefix <> "-" <> system <> ".paclet"
-                }]
-            ];
-            result = Quiet @ Check[
-                CopyFile[file, latest, OverwriteTarget -> True],
-                $Failed
-            ];
-            scriptRequire[
-                result,
-                MatchQ[_CloudObject],
-                "Could not upload paclet"
-            ];
-            scriptRequire[
-                Quiet @ Check[
-                    SetOptions[
-                        result,
-                        Permissions -> "Public",
-                        MetaInformation -> <|
-                            "Commit" -> commit,
-                            "SHA256" -> hash,
-                            "Version" -> version,
-                            "SystemID" -> system
-                        |>
-                    ],
-                    $Failed
-                ],
-                # =!= $Failed &,
-                "Could not set cloud object options"
-            ];
-            First[result]
+                }],
+                <|
+                    "Commit" -> commit,
+                    "SHA256" -> IntegerString[FileHash[file, "SHA256"], 16, 64],
+                    "Version" -> version,
+                    "SystemID" -> system
+                |>,
+                "application/zip"
+            ]
         ],
         {archives, systems}
     ];
     pageFile = FileNameJoin[{scriptDirectory, "resource-page.html"}];
     scriptRequire[pageFile, FileExistsQ, "Resource page was not found"];
-    page = CloudObject[FileNameJoin[{
-        "DeployedResources", "Paclet", "WolframInstitute", "GAPLink"
-    }]];
-    result = Quiet @ Check[
-        CopyFile[
-            pageFile, page, OverwriteTarget -> True, MIMEType -> "text/html"
-        ],
-        $Failed
-    ];
-    scriptRequire[result, MatchQ[_CloudObject], "Could not upload resource page"];
-    scriptRequire[
-        Quiet @ Check[
-            SetOptions[
-                result,
-                Permissions -> "Public",
-                MetaInformation -> <|"Commit" -> commit, "Version" -> version|>
-            ],
-            $Failed
-        ],
-        # =!= $Failed &,
-        "Could not set resource page options"
+    page = publishCloudFile[pageFile,
+        FileNameJoin[{"DeployedResources", "Paclet", "WolframInstitute", "GAPLink"}],
+        <|"Commit" -> commit, "Version" -> version|>,
+        "text/html"
     ];
     prefix = StringReplace[
         First[urls],
@@ -121,10 +84,10 @@ Module[
     writeGitHubOutput[
         "archives" -> Length[urls],
         "prefix" -> prefix,
-        "page" -> First[result]
+        "page" -> page
     ];
     Scan[Print["OK: ", #] &, urls];
-    Print["OK: ", First[result]];
+    Print["OK: ", page];
     Print[
         "Install with PacletInstall[\"", prefix,
         "\" <> $SystemID <> \".paclet\"]"

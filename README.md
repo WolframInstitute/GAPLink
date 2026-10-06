@@ -97,7 +97,7 @@ session = StartGAPSession["Executable" -> "/path/to/gap"];
 
 ## Development
 
-Development needs `wolframscript`, Git, `make`, and GAP 4.14–4.16.
+Development needs `wolframscript`, Git, `make`, Python 3, and GAP 4.14–4.16.
 
 ```bash
 make all

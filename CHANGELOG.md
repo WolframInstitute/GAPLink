@@ -4,6 +4,8 @@ Notable changes are listed here.
 
 ## [Unreleased]
 
+## [0.2.1] - 2026-10-07
+
 ### Changed
 
 - Show Wolfram Cloud publishing with the release checks.
@@ -11,6 +13,7 @@ Notable changes are listed here.
 ### Fixed
 
 - Fixed `GAPObject` display in notebooks.
+- Restored public cloud downloads and added anonymous-access checks when publishing.
 
 ## [0.2.0] - 2026-09-02
 
@@ -62,6 +65,7 @@ Notable changes are listed here.
 - Fixed the GAP startup handshake.
 - Removed repeated macOS warnings during startup.
 
-[Unreleased]: https://github.com/WolframInstitute/GAPLink/compare/v0.2.0...HEAD
+[Unreleased]: https://github.com/WolframInstitute/GAPLink/compare/v0.2.1...HEAD
+[0.2.1]: https://github.com/WolframInstitute/GAPLink/compare/v0.2.0...v0.2.1
 [0.2.0]: https://github.com/WolframInstitute/GAPLink/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/WolframInstitute/GAPLink/releases/tag/v0.1.0

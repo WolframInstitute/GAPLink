@@ -5,6 +5,7 @@
 - Wolfram Language 15.0 or later
 - `wolframscript` on `PATH`
 - Git and `make`
+- Python 3 for the cloud download checks
 - GAP 4.14–4.16 for the live session test
 
 GAP is not needed for `make test`.
@@ -132,9 +133,10 @@ Before tagging a release:
 6. Push an annotated `v<version>` tag.
 
 ```bash
-git tag -a v0.2.0 -m "v0.2.0"
-git push origin v0.2.0
+git tag -a v0.2.1 -m "v0.2.1"
+git push origin v0.2.1
 ```
 
 The tag creates a GitHub release with the platform paclets, checksums, and GAP source
-archives. The platform paclets are then uploaded to Wolfram Cloud.
+archives. The platform paclets are then uploaded to Wolfram Cloud. Publishing checks that
+each download and the resource page can be opened without signing in.

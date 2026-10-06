@@ -41,5 +41,6 @@ Normal pushes do not publish.
 - Reject a tag that does not match the paclet version.
 - Reject a tagged commit without successful `main` CI.
 - Check each release checksum.
+- Check public access to every cloud download and the resource page without signing in.
 - Include the source for the bundled GAP files.
 - Retry a cloud upload from the same GitHub release.

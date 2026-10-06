@@ -46,7 +46,7 @@ runCheck[] := Module[
         {FileNameJoin[{pacletDirectory, "PacletInfo.wl"}]},
         FileNames[{"*.wl", "*.m"}, FileNameJoin[{pacletDirectory, "Kernel"}], Infinity],
         FileNames["*.wlt", FileNameJoin[{pacletDirectory, "Tests"}], Infinity],
-        FileNames[{"*.wl", "*.wls"}, scriptDirectory]
+        FileNames[{"*.wl", "*.wls", "*.wlt"}, scriptDirectory, Infinity]
     ];
     lintFiles[files];
 

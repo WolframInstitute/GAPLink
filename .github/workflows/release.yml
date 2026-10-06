@@ -139,7 +139,10 @@ jobs:
 
       - name: Publish paclet
         id: publish
-        run: wolframscript -file scripts/publish.wls
+        run: |
+          apt-get update
+          apt-get install -y --no-install-recommends python3
+          wolframscript -file scripts/publish.wls
 
       - name: Add summary
         run: |
