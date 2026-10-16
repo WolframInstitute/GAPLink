@@ -96,7 +96,7 @@ jobs:
           fi
 
       - name: Upload runtime
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
           name: GAPLink-runtime-${{ matrix.system-id }}
           path: build/runtimes/${{ matrix.system-id }}/*.tar.gz*
@@ -106,7 +106,7 @@ jobs:
 
       - name: Upload GAP sources
         if: matrix.system-id == 'Linux-x86-64'
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
           name: GAPLink-runtime-sources
           path: build/runtime-sources/*.tar.gz
@@ -145,7 +145,7 @@ jobs:
           if ($Actual -ne $Expected) { throw "Runtime checksum does not match" }
 
       - name: Upload runtime
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
           name: GAPLink-runtime-Windows-x86-64
           path: build/runtimes/Windows-x86-64/*.tar.gz*
@@ -188,7 +188,7 @@ jobs:
             -C "$GAPROOT" .
 
       - name: Upload GAP
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
           name: GAPLink-GAP-${{ matrix.gap-version }}
           path: build/gap-versions/${{ matrix.gap-version }}.tar.gz
@@ -274,7 +274,7 @@ jobs:
           cp build/bundles/*/*.paclet build/dist/
 
       - name: Upload platform paclets
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
           name: GAPLink-${{ steps.build.outputs.version }}
           path: build/dist/*.paclet
