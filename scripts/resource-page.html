@@ -18,11 +18,14 @@
 
     <h2>Install</h2>
     <pre><code>PacletInstall[
-    "https://www.wolframcloud.com/obj/wolframinstitute/GAPLink/" &lt;&gt;
-        "WolframInstitute__GAPLink-" &lt;&gt; $SystemID &lt;&gt; ".paclet"
+    ResourceObject[
+        "https://www.wolframcloud.com/obj/wolframinstitute/GAPLink/" &lt;&gt;
+            "WolframInstitute__GAPLink-" &lt;&gt; $SystemID &lt;&gt; ".paclet"
+    ],
+    ForceVersionInstall -&gt; True
 ];</code></pre>
 
-    <p>Release paclets include a tested GAP runtime.</p>
+    <p><code>$SystemID</code> selects the archive for your computer. Release paclets include a tested GAP runtime.</p>
 
     <h2>Quick test</h2>
     <pre><code>Needs["WolframInstitute`GAPLink`"];

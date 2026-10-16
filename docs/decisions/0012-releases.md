@@ -18,12 +18,14 @@ different file.
 - GitHub Releases stores the paclets, checksums, and GAP source archives.
 - Wolfram Cloud receives the same paclets after the GitHub release succeeds.
 - The cloud keeps one latest file for each system.
+- Each archive links to a public `ResourceObject` description of that platform's paclet.
 - The cloud also receives a public page with the system-aware install command.
 - GitHub keeps the versioned files. Published versions are not replaced.
 - Credentials stay in GitHub secrets.
 
-The page is a static file because GAPLink has one paclet for each system. Its install command
-selects the correct file with `$SystemID`.
+The install command selects the correct file with the user's `$SystemID`. Both direct
+downloads and `ResourceObject` installs use the same verified archive. Resource descriptions
+have separate identities for each platform and release, so cached downloads do not overlap.
 
 ## Other options
 
@@ -41,6 +43,6 @@ Normal pushes do not publish.
 - Reject a tag that does not match the paclet version.
 - Reject a tagged commit without successful `main` CI.
 - Check each release checksum.
-- Check public access to every cloud download and the resource page without signing in.
+- Check public access to every archive, resource description, and page without signing in.
 - Include the source for the bundled GAP files.
 - Retry a cloud upload from the same GitHub release.

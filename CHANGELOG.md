@@ -4,9 +4,15 @@ Notable changes are listed here.
 
 ## [Unreleased]
 
+## [0.2.2] - 2026-10-16
+
 ### Changed
 
 - Allow reinstalling the same version with the README install command.
+
+### Fixed
+
+- Publish resource descriptions so `ResourceObject` installs select the correct platform archive.
 
 ## [0.2.1] - 2026-10-07
 
@@ -69,7 +75,8 @@ Notable changes are listed here.
 - Fixed the GAP startup handshake.
 - Removed repeated macOS warnings during startup.
 
-[Unreleased]: https://github.com/WolframInstitute/GAPLink/compare/v0.2.1...HEAD
+[Unreleased]: https://github.com/WolframInstitute/GAPLink/compare/v0.2.2...HEAD
+[0.2.2]: https://github.com/WolframInstitute/GAPLink/compare/v0.2.1...v0.2.2
 [0.2.1]: https://github.com/WolframInstitute/GAPLink/compare/v0.2.0...v0.2.1
 [0.2.0]: https://github.com/WolframInstitute/GAPLink/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/WolframInstitute/GAPLink/releases/tag/v0.1.0

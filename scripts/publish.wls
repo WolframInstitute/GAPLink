@@ -54,20 +54,7 @@ Module[
 
     commit = setting["RELEASE_COMMIT"];
     urls = MapThread[
-        Function[{file, system},
-            publishCloudFile[file,
-                FileNameJoin[{
-                    "GAPLink", archivePrefix <> "-" <> system <> ".paclet"
-                }],
-                <|
-                    "Commit" -> commit,
-                    "SHA256" -> IntegerString[FileHash[file, "SHA256"], 16, 64],
-                    "Version" -> version,
-                    "SystemID" -> system
-                |>,
-                "application/zip"
-            ]
-        ],
+        publishPaclet[#1, #2, paclet, commit] &,
         {archives, systems}
     ];
     pageFile = FileNameJoin[{scriptDirectory, "resource-page.html"}];
@@ -89,7 +76,7 @@ Module[
     Scan[Print["OK: ", #] &, urls];
     Print["OK: ", page];
     Print[
-        "Install with PacletInstall[\"", prefix,
-        "\" <> $SystemID <> \".paclet\"]"
+        "Install with PacletInstall[ResourceObject[\"", prefix,
+        "\" <> $SystemID <> \".paclet\"], ForceVersionInstall -> True]"
     ]
 ]

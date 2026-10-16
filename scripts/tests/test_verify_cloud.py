@@ -14,6 +14,9 @@ class Handler(BaseHTTPRequestHandler):
         "/paclet": (200, "application/zip", b"PK\x03\x04"),
         "/range": (206, "application/zip", b"PK\x03\x04"),
         "/page": (200, "text/html; charset=utf-8", b"<title>GAPLink</title>"),
+        "/resource": (200, "text/plain; charset=utf-8", b'ResourceObject[<|"Name" -> "WolframInstitute/GAPLink"|>]'),
+        "/bad-resource": (200, "text/plain", b"Sign in"),
+        "/wrong-resource": (200, "text/plain", b'ResourceObject[<|"Name" -> "AnotherPaclet"|>]'),
         "/redirect": (302, "text/html", b""),
         "/private": (401, "text/html", b"Sign in"),
         "/signin": (200, "text/html", b"<title>Sign in</title>"),
@@ -48,7 +51,12 @@ class PublicDownloadTests(unittest.TestCase):
         cls.server.server_close()
 
     def test_public_downloads(self):
-        for path, content_type in [("/paclet", "application/zip"), ("/range", "application/zip"), ("/page", "text/html")]:
+        for path, content_type in [
+            ("/paclet", "application/zip"),
+            ("/range", "application/zip"),
+            ("/page", "text/html"),
+            ("/resource", "text/plain"),
+        ]:
             with self.subTest(path=path):
                 cloud.verify(self.url + path, content_type)
 
@@ -60,6 +68,11 @@ class PublicDownloadTests(unittest.TestCase):
     def test_reject_signin_page(self):
         with self.assertRaises(ValueError):
             cloud.verify(self.url + "/signin", "text/html")
+
+    def test_reject_invalid_resource(self):
+        for path in ("/bad-resource", "/wrong-resource", "/signin", "/redirect", "/private"):
+            with self.subTest(path=path), self.assertRaises((OSError, ValueError)):
+                cloud.verify(self.url + path, "text/plain")
 
 
 if __name__ == "__main__":

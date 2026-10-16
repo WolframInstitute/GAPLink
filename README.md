@@ -20,11 +20,19 @@ Install the latest release from Wolfram Cloud:
 
 ```wolfram
 PacletInstall[
-    "https://www.wolframcloud.com/obj/wolframinstitute/GAPLink/" <>
-        "WolframInstitute__GAPLink-" <> $SystemID <> ".paclet",
+    ResourceObject[
+        "https://www.wolframcloud.com/obj/wolframinstitute/GAPLink/" <>
+            "WolframInstitute__GAPLink-" <> $SystemID <> ".paclet"
+    ],
     ForceVersionInstall -> True
 ];
 ```
+
+`$SystemID` is evaluated on your computer and selects its platform archive.
+`ForceVersionInstall -> True` allows reinstalling the same version.
+
+`ResourceObject` support starts with the `0.2.2` cloud release. For earlier releases,
+pass the URL directly to `PacletInstall`.
 
 Stable `.paclet` files and checksums are also on
 [GitHub Releases](https://github.com/WolframInstitute/GAPLink/releases).

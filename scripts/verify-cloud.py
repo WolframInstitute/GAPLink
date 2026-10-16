@@ -20,8 +20,15 @@ def verify(url, content_type):
         if content_type == "application/zip":
             if response.read(4) != b"PK\x03\x04":
                 raise ValueError("The download is not a paclet archive")
-        elif b"<title>GAPLink</title>" not in response.read(8192):
-            raise ValueError("The response is not the GAPLink resource page")
+        elif content_type == "text/plain":
+            body = response.read(8192)
+            if not body.startswith(b"ResourceObject[<|") or b'"WolframInstitute/GAPLink"' not in body:
+                raise ValueError("The response is not a GAPLink resource description")
+        elif content_type == "text/html":
+            if b"<title>GAPLink</title>" not in response.read(8192):
+                raise ValueError("The response is not the GAPLink resource page")
+        else:
+            raise ValueError("Unsupported content type")
 
 
 if __name__ == "__main__":

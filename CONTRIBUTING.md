@@ -133,10 +133,10 @@ Before tagging a release:
 6. Push an annotated `v<version>` tag.
 
 ```bash
-git tag -a v0.2.1 -m "v0.2.1"
-git push origin v0.2.1
+git tag -a v0.2.2 -m "v0.2.2"
+git push origin v0.2.2
 ```
 
 The tag creates a GitHub release with the platform paclets, checksums, and GAP source
 archives. The platform paclets are then uploaded to Wolfram Cloud. Publishing checks that
-each download and the resource page can be opened without signing in.
+each archive, resource description, and page can be opened without signing in.
