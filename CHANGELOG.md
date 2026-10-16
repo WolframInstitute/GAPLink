@@ -4,6 +4,10 @@ Notable changes are listed here.
 
 ## [Unreleased]
 
+### Changed
+
+- Allow reinstalling the same version with the README install command.
+
 ## [0.2.1] - 2026-10-07
 
 ### Changed

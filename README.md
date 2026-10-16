@@ -21,7 +21,8 @@ Install the latest release from Wolfram Cloud:
 ```wolfram
 PacletInstall[
     "https://www.wolframcloud.com/obj/wolframinstitute/GAPLink/" <>
-        "WolframInstitute__GAPLink-" <> $SystemID <> ".paclet"
+        "WolframInstitute__GAPLink-" <> $SystemID <> ".paclet",
+    ForceVersionInstall -> True
 ];
 ```
 
