@@ -133,8 +133,8 @@ Before tagging a release:
 6. Push an annotated `v<version>` tag.
 
 ```bash
-git tag -a v0.2.2 -m "v0.2.2"
-git push origin v0.2.2
+git tag -a v0.2.3 -m "v0.2.3"
+git push origin v0.2.3
 ```
 
 The tag creates a GitHub release with the platform paclets, checksums, and GAP source

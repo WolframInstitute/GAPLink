@@ -77,6 +77,7 @@ Module[
     Print["OK: ", page];
     Print[
         "Install with PacletInstall[ResourceObject[\"", prefix,
-        "\" <> $SystemID <> \".paclet\"], ForceVersionInstall -> True]"
+        "\" <> $SystemID <> \".paclet\"][\"PacletFile\"], ",
+        "ForceVersionInstall -> True, \"ShowProgress\" -> True]"
     ]
 ]

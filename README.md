@@ -23,13 +23,15 @@ PacletInstall[
     ResourceObject[
         "https://www.wolframcloud.com/obj/wolframinstitute/GAPLink/" <>
             "WolframInstitute__GAPLink-" <> $SystemID <> ".paclet"
-    ],
-    ForceVersionInstall -> True
+    ]["PacletFile"],
+    ForceVersionInstall -> True,
+    "ShowProgress" -> True
 ];
 ```
 
 `$SystemID` is evaluated on your computer and selects its platform archive.
 `ForceVersionInstall -> True` allows reinstalling the same version.
+Installing the resource's `"PacletFile"` with `"ShowProgress" -> True` shows download progress.
 
 `ResourceObject` support starts with the `0.2.2` cloud release. For earlier releases,
 pass the URL directly to `PacletInstall`.

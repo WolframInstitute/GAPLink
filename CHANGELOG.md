@@ -4,6 +4,12 @@ Notable changes are listed here.
 
 ## [Unreleased]
 
+## [0.2.3] - 2026-10-16
+
+### Fixed
+
+- Show download progress in the README and cloud page install commands.
+
 ## [0.2.2] - 2026-10-16
 
 ### Changed
@@ -75,7 +81,8 @@ Notable changes are listed here.
 - Fixed the GAP startup handshake.
 - Removed repeated macOS warnings during startup.
 
-[Unreleased]: https://github.com/WolframInstitute/GAPLink/compare/v0.2.2...HEAD
+[Unreleased]: https://github.com/WolframInstitute/GAPLink/compare/v0.2.3...HEAD
+[0.2.3]: https://github.com/WolframInstitute/GAPLink/compare/v0.2.2...v0.2.3
 [0.2.2]: https://github.com/WolframInstitute/GAPLink/compare/v0.2.1...v0.2.2
 [0.2.1]: https://github.com/WolframInstitute/GAPLink/compare/v0.2.0...v0.2.1
 [0.2.0]: https://github.com/WolframInstitute/GAPLink/compare/v0.1.0...v0.2.0
