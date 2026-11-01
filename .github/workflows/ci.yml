@@ -130,6 +130,10 @@ jobs:
           path: build/runtimes/Windows-x86-64/*.tar.gz*
           key: gaplink-runtime-Windows-x86-64-${{ hashFiles('scripts/build-runtime-windows.ps1') }}
 
+      - name: Check Windows archive tools
+        shell: pwsh
+        run: python -m unittest discover -s scripts/tests -p test_verify_runtime.py
+
       - name: Build runtime
         if: steps.runtime-cache.outputs.cache-hit != 'true'
         shell: pwsh

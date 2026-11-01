@@ -13,7 +13,10 @@ $RepositoryRoot = Split-Path $PSScriptRoot -Parent
 $SourceDirectory = Join-Path $RepositoryRoot "build/runtime-sources"
 $OutputDirectory = Join-Path $RepositoryRoot "build/runtimes/$SystemID"
 $Tar = Join-Path $env:SystemRoot "System32/tar.exe"
-$Python = (Get-Command python -CommandType Application -ErrorAction Stop).Source
+$Python = (Get-Command python -CommandType Application -ErrorAction Stop |
+    Select-Object -First 1).Source
+& $Python --version
+if ($LASTEXITCODE -ne 0) { throw "Python could not start (exit code $LASTEXITCODE)" }
 
 function Get-VerifiedFile($Name, $ExpectedHash) {
     $Path = Join-Path $SourceDirectory $Name
