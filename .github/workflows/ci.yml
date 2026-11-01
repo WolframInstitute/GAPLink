@@ -301,6 +301,19 @@ jobs:
           mkdir -p build/dist
           cp build/bundles/*/*.paclet build/dist/
 
+      - name: Keep the verified PacletPage build
+        run: |
+          tar -czf build/pacletpage-build.tar.gz -C GAPLink Documentation ResourceDefinition.nb build
+
+      - name: Upload the verified PacletPage build
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: GAPLink-pacletpage
+          path: build/pacletpage-build.tar.gz
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: 30
+
       - name: Upload platform paclets
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:

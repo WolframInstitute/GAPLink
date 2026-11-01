@@ -2,6 +2,7 @@
 
 Get[FileNameJoin[{DirectoryName[$InputFileName], "common.wl"}]];
 Get[FileNameJoin[{scriptDirectory, "check.wl"}]];
+Get[FileNameJoin[{scriptDirectory, "platforms.wl"}]];
 
 systems = {"Linux-x86-64", "MacOSX-ARM64", "MacOSX-x86-64", "Windows-x86-64"};
 
@@ -126,7 +127,63 @@ verifyPaclet[] := Module[{result},
     result = Block[{$CloudConnected = False},
         pageCall["DeployPacletResource", pacletDirectory, "DryRun" -> True,
             "Build" -> False, "Parallel" -> False]];
-    checkArchive[result]
+    checkArchive[result];
+    result
+];
+
+releaseTag[environment_Association, version_String] := Module[{tag},
+    tag = Lookup[environment, "GITHUB_REF_NAME", ""];
+    scriptRequire[Lookup[environment, {"GITHUB_ACTIONS", "GITHUB_EVENT_NAME", "GITHUB_REF_TYPE"}],
+        # === {"true", "push", "tag"} &, "Publishing requires a release-tag workflow"];
+    scriptRequire[tag, StringMatchQ[#, RegularExpression["v(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)"]] &&
+        # === "v" <> version && Lookup[environment, "GITHUB_REF"] === "refs/tags/" <> # &,
+        "The release tag must match PacletInfo.wl"]
+];
+
+gitText[arguments__String] := Module[{result},
+    result = RunProcess[{"git", "-C", repositoryRoot, arguments}];
+    scriptRequire[result["ExitCode"], # === 0 &, "Git could not verify the release checkout"];
+    StringTrim[result["StandardOutput"]]
+];
+
+checkRelease[environment_Association : Association[GetEnvironment[]]] := Module[{tag, commit},
+    tag = releaseTag[environment, PacletObject[File[pacletDirectory]]["Version"]];
+    commit = gitText["rev-parse", "HEAD"];
+    scriptRequire[gitText["rev-parse", "refs/tags/" <> tag <> "^{commit}"], # === commit &,
+        "The tag does not point to HEAD"];
+    scriptRequire[Lookup[environment, "GITHUB_SHA"], StringQ, "The workflow commit is missing"];
+    scriptRequire[gitText["rev-parse", environment["GITHUB_SHA"] <> "^{commit}"], # === commit &,
+        "The checkout differs from the workflow commit"];
+    scriptRequire[RunProcess[{"git", "-C", repositoryRoot, "merge-base", "--is-ancestor", "HEAD", "origin/main"}]["ExitCode"],
+        # === 0 &, "The release commit is not on main"];
+    scriptRequire[gitText["status", "--porcelain"], # === "" &, "The release checkout has uncommitted changes"];
+    commit
+];
+
+publish[] := Module[{commit, account, password, paclet, archives, result, resources},
+    commit = checkRelease[];
+    paclet = PacletObject[File[pacletDirectory]];
+    archives = platformArchives[paclet["Version"]];
+    verifyPaclet[];
+    account = setting["WOLFRAM_CLOUD_USER"];
+    password = setting["WOLFRAM_CLOUD_PASSWORD"];
+    scriptRequire[Quiet @ Check[CloudConnect[account, password], $Failed], # =!= $Failed &,
+        "Could not connect to Wolfram Cloud"];
+    scriptRequire[$CloudConnected, TrueQ, "Could not connect to Wolfram Cloud"];
+    result = pageCall["PublishPacletPage", pacletDirectory, "GAPLink", "Account" -> account,
+        "Build" -> False, "ResourceOptions" -> {"Build" -> False, "Parallel" -> False, "Commit" -> commit},
+        "Monitor" -> True];
+    scriptRequire[result, AssociationQ, "PacletPage publication failed"];
+    scriptRequire[result["Resource"]["Deployed"], TrueQ, "PacletPage resource was not published"];
+    scriptRequire[result["Check"]["OK"], TrueQ, "Published documentation did not pass its checks"];
+    resources = Association @ KeyValueMap[#1 -> publishPlatform[#2, #1, paclet, commit] &, archives];
+    attachPlatforms[result["Resource"]["Resource"], resources, paclet["Version"], commit];
+    scriptRequire[Quiet @ Check[ResourceObject[result["Resource"]["Resource"]]["PacletFile"], $Failed],
+        # === resources[$SystemID]["PacletFile"] &, "The resource did not select the matching platform archive"];
+    writeGitHubOutput["archives" -> Length[archives], "page" -> result["Resource"]["Resource"],
+        "site" -> result["Site"]["Site"]];
+    Print["OK: ", result["Resource"]["Resource"]];
+    Print["OK: ", result["Site"]["Site"]]
 ];
 
 buildBundle[system_String, runtime_String] := Module[{stage, source, target, info, result, archive},
@@ -285,7 +342,8 @@ Switch[command,
             FileNameJoin[{buildDirectory, "runtimes", $SystemID, "runtime"}]]],
     "verify", verifyPaclet[],
     "verify-bundle", verifyBundle[],
-    "publish", Get[FileNameJoin[{scriptDirectory, "publish.wl"}]]; publishAll[],
+    "check-release", checkRelease[],
+    "publish", publish[],
     "lint", lintFiles[Drop[$ScriptCommandLine, 2]],
     "all", runCheck[]; runOfflineTests[]; buildPaclet[],
     "ci", runCI[],

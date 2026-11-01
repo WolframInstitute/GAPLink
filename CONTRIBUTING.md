@@ -157,5 +157,7 @@ git push origin v0.3.0
 ```
 
 The tag creates a GitHub release with the platform paclets, checksums, and GAP source
-archives. The platform paclets are then uploaded to Wolfram Cloud. Publishing checks that
-each archive, resource description, and page can be opened without signing in.
+archives. PacletPage restores CI's verified build and publishes the resource and
+documentation site without rebuilding. The platform downloads keep their existing URLs;
+the generated install commands select the runtime for the user's system. Publishing checks
+the documentation pages and public access to each archive and resource description.

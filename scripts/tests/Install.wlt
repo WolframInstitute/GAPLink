@@ -1,24 +1,9 @@
 Needs["CloudObject`"];
 
-installExamples = {
-    First @ StringCases[
-        Import[FileNameJoin[{repositoryRoot, "README.md"}], "Text"],
-        RegularExpression["(?s)```wolfram\n(.*?)\n```"] -> "$1"
-    ],
-    StringReplace[
-        First @ StringCases[
-            Import[FileNameJoin[{scriptDirectory, "resource-page.html"}], "Text"],
-            RegularExpression["(?s)<pre><code>(.*?)</code></pre>"] -> "$1"
-        ],
-        {"&lt;" -> "<", "&gt;" -> ">"}
-    ]
-};
-
-VerificationTest[
-    SameQ @@ (ToExpression[#, InputForm, HoldComplete] & /@ installExamples),
-    True,
-    TestID -> "Install-Examples-Match"
-]
+installExample = First @ StringCases[
+    Import[FileNameJoin[{repositoryRoot, "README.md"}], "Text"],
+    RegularExpression["(?s)```wolfram\n(.*?)\n```"] -> "$1"
+];
 
 VerificationTest[
     And @@ Table[
@@ -29,7 +14,7 @@ VerificationTest[
             PacletInstall = (Sow[{##}] &)
         },
             Last[Reap[ToExpression[StringReplace[
-                First[installExamples], "$SystemID" -> ToString[system, InputForm]
+                installExample, "$SystemID" -> ToString[system, InputForm]
             ]]]] === {{
                 {CloudObject["https://www.wolframcloud.com/obj/wolframinstitute/GAPLink/" <>
                     "WolframInstitute__GAPLink-" <> system <> ".paclet"],
@@ -42,4 +27,4 @@ VerificationTest[
     TestID -> "Install-Archive-With-Progress-On-Each-System"
 ]
 
-ClearAll[installExamples];
+ClearAll[installExample];

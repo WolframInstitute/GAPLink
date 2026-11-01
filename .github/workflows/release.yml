@@ -27,9 +27,14 @@ jobs:
     env:
       GH_TOKEN: ${{ github.token }}
       TAG: ${{ github.ref_name }}
+    outputs:
+      run: ${{ steps.release.outputs.run }}
     steps:
       - name: Check out tagged commit
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          fetch-depth: 0
+          persist-credentials: false
 
       - name: Find verified paclet
         id: release
@@ -39,7 +44,11 @@ jobs:
             echo "::error title=Version mismatch::$TAG does not match version $version."
             exit 1
           fi
-          run=$(gh run list --workflow ci.yml --branch main --commit "$GITHUB_SHA" \
+          git merge-base --is-ancestor HEAD origin/main || {
+            echo '::error title=Release commit::The release commit must be on main.'
+            exit 1
+          }
+          run=$(gh run list --workflow ci.yml --branch main --commit "$(git rev-parse HEAD)" \
             --event push --status success --limit 1 --json databaseId --jq '.[0].databaseId')
           if [ -z "$run" ]; then
             echo "::error title=Missing CI run::No successful main CI run found for $GITHUB_SHA."
@@ -105,7 +114,7 @@ jobs:
           fi
 
   publish:
-    name: Publish to Wolfram Cloud
+    name: Publish with PacletPage
     needs: release
     runs-on: ubuntu-latest
     timeout-minutes: 45
@@ -116,11 +125,19 @@ jobs:
       WOLFRAMSCRIPT_ENTITLEMENTID: ${{ secrets.WOLFRAMSCRIPT_ENTITLEMENTID }}
       WOLFRAM_CLOUD_USER: ${{ secrets.WOLFRAM_CLOUD_USER }}
       WOLFRAM_CLOUD_PASSWORD: ${{ secrets.WOLFRAM_CLOUD_PASSWORD }}
-      RELEASE_COMMIT: ${{ github.sha }}
       QT_QPA_PLATFORM: offscreen
     steps:
+      - name: Install publishing tools
+        run: |
+          apt-get update
+          apt-get install -y --no-install-recommends git ca-certificates make python3
+          git config --system --add safe.directory "$GITHUB_WORKSPACE"
+
       - name: Check out tagged commit
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          fetch-depth: 0
+          persist-credentials: false
 
       - name: Check credentials
         run: |
@@ -137,17 +154,35 @@ jobs:
           name: paclet
           path: build
 
-      - name: Publish paclet
-        id: publish
+      - name: Download the verified PacletPage build
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
+        with:
+          name: GAPLink-pacletpage
+          path: build
+          run-id: ${{ needs.release.outputs.run }}
+          github-token: ${{ github.token }}
+
+      - name: Restore documentation tools
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: .deps
+          key: pacletpage-${{ hashFiles('scripts/fetch-deps.sh') }}
+
+      - name: Restore the verified build
         run: |
-          apt-get update
-          apt-get install -y --no-install-recommends python3
-          wolframscript -file scripts/project.wls publish
+          (cd build && sha256sum -c *.sha256)
+          tar -xzf build/pacletpage-build.tar.gz -C GAPLink
+          make deps
+
+      - name: Publish the resource and documentation site
+        id: publish
+        run: make publish
 
       - name: Add summary
         run: |
           echo '### Published to Wolfram Cloud' >> "$GITHUB_STEP_SUMMARY"
           echo '' >> "$GITHUB_STEP_SUMMARY"
           echo '- Archives: ${{ steps.publish.outputs.archives }}' >> "$GITHUB_STEP_SUMMARY"
-          echo '- Page: ${{ steps.publish.outputs.page }}' >> "$GITHUB_STEP_SUMMARY"
-          echo '- Install: `PacletInstall[ResourceObject["${{ steps.publish.outputs.prefix }}" <> $SystemID <> ".paclet"]["PacletFile"], ForceVersionInstall -> True, "ShowProgress" -> True]`' >> "$GITHUB_STEP_SUMMARY"
+          echo '- Resource: ${{ steps.publish.outputs.page }}' >> "$GITHUB_STEP_SUMMARY"
+          echo '- Documentation: ${{ steps.publish.outputs.site }}' >> "$GITHUB_STEP_SUMMARY"
+          echo '- Install: `PacletInstall[ResourceObject["${{ steps.publish.outputs.page }}"]["PacletFile"], ForceVersionInstall -> True, "ShowProgress" -> True]`' >> "$GITHUB_STEP_SUMMARY"

@@ -1,4 +1,3 @@
-Get[FileNameJoin[{scriptDirectory, "publish.wl"}]];
 Needs["CloudObject`"];
 
 SetAttributes[withPublishMocks, HoldAll];
@@ -109,7 +108,7 @@ VerificationTest[
                 ],
                 setCloudMetadata = Function[{object, data}, Sow[{object, MetaInformation -> data}]]
             },
-                publishPaclet[FileNameJoin[{pacletDirectory, "PacletInfo.wl"}],
+                publishPlatform[FileNameJoin[{pacletDirectory, "PacletInfo.wl"}],
                     "Linux-x86-64", PacletObject[File[pacletDirectory]], "test-commit"]
             ]
         ];
@@ -119,7 +118,7 @@ VerificationTest[
         metadata = Last[Last[Last[records]]];
         DeleteDirectory[directory, DeleteContents -> True];
         {
-            First[result],
+            First[result]["PacletFile"],
             records[[All, 1]],
             records[[1, 2, "Commit"]],
             records[[1, 2, "Version"]],
@@ -131,7 +130,7 @@ VerificationTest[
         }
     ],
     {
-        "https://example.invalid/obj/GAPLink/WolframInstitute__GAPLink-Linux-x86-64.paclet",
+        CloudObject["https://example.invalid/obj/GAPLink/WolframInstitute__GAPLink-Linux-x86-64.paclet"],
         {
             "GAPLink/WolframInstitute__GAPLink-Linux-x86-64.paclet",
             "GAPLink/PacletInfo.wl",
@@ -175,3 +174,132 @@ VerificationTest[
 ]
 
 ClearAll[withPublishMocks];
+
+VerificationTest[
+    Module[{resources, description, results},
+        resources = AssociationMap[
+            pacletResourceInfo[PacletObject[File[pacletDirectory]],
+                CloudObject["https://example.invalid/obj/GAPLink/" <> archivePrefix <> "-" <> # <> ".paclet"], #] &,
+            systems
+        ];
+        description = platformDescription[resources];
+        results = Table[
+            Block[{ResourceObject}, First[ToExpression[
+                StringReplace[description, "$SystemID" -> ToString[system, InputForm]]]]],
+            {system, systems}
+        ];
+        {
+            results === Values[resources],
+            DuplicateFreeQ[Lookup[results, "UUID"]],
+            FailureQ[ToExpression[StringReplace[description, "$SystemID" -> "\"Unsupported\""]]]
+        }
+    ],
+    {True, True, True},
+    TestID -> "Resource-Selects-The-Installing-System"
+]
+
+VerificationTest[
+    Module[{resources, text},
+        resources = AssociationMap[
+            pacletResourceInfo[PacletObject[File[pacletDirectory]],
+                CloudObject["https://www.wolframcloud.com/obj/gaplink-test/" <> # <> ".paclet"], #] &,
+            systems
+        ];
+        text = platformDescription[resources];
+        Internal`InheritedBlock[{CloudObject}, Module[{page, description, results},
+            page = CloudObject["https://www.wolframcloud.com/obj/gaplink-test/DeployedResources/Paclet/WolframInstitute/GAPLink"];
+            description = CloudObject["https://www.wolframcloud.com/obj/gaplink-test/platforms.wl"];
+            Unprotect[CloudObject];
+            With[{p = page, d = description},
+                CloudObject /: Verbatim[Options][p, MetaInformation] :=
+                    {MetaInformation -> <|"ResourceLocation" -> d|>};
+                CloudObject /: CloudGet[d] := ToExpression[
+                    StringReplace[text, "$SystemID" -> ToString[system, InputForm]]]
+            ];
+            results = Table[
+                ResourceObject[First[page]]["PacletFile"],
+                {system, systems}
+            ];
+            results === Lookup[Values[resources], "PacletFile"]
+        ]]
+    ],
+    True,
+    TestID -> "Page-ResourceObject-Selects-All-Four-Platform-Archives"
+]
+
+VerificationTest[
+    Module[{directory = CreateDirectory[], result, metadata},
+        metadata = {"PacletVersion" -> "0.3.0", "PacletCommit" -> "commit", "Other" -> 1};
+        result = Internal`InheritedBlock[{CloudObject},
+            Unprotect[CloudObject];
+            CloudObject /: Verbatim[Options][CloudObject["https://example.invalid/obj/resource"], MetaInformation] :=
+                {MetaInformation -> metadata};
+            Block[{
+                buildDirectory = directory,
+                publishCloudFile = Function[Null, "https://example.invalid/obj/platforms.wl"],
+                setCloudMetadata = Function[{object, info}, info]
+            }, attachPlatforms["https://example.invalid/obj/resource", <||>, "0.3.0", "commit"]]
+        ];
+        DeleteDirectory[directory, DeleteContents -> True];
+        result === Append[Association[metadata], "ResourceLocation" -> CloudObject["https://example.invalid/obj/platforms.wl"]]
+    ],
+    True,
+    TestID -> "Platform-Routing-Preserves-PacletPage-Release-Metadata"
+]
+
+VerificationTest[
+    Block[{scriptFail = (Throw[StringJoin[##], "ReleaseFailure"] &)},
+        Module[{environment},
+            environment = <|"GITHUB_ACTIONS" -> "true", "GITHUB_EVENT_NAME" -> "push",
+                "GITHUB_REF_TYPE" -> "tag", "GITHUB_REF_NAME" -> "v0.3.0", "GITHUB_REF" -> "refs/tags/v0.3.0"|>;
+            {
+                releaseTag[environment, "0.3.0"],
+                Catch[releaseTag[<||>, "0.3.0"], "ReleaseFailure"],
+                Catch[releaseTag[environment, "0.3.1"], "ReleaseFailure"],
+                Catch[releaseTag[Append[environment, "GITHUB_EVENT_NAME" -> "pull_request"], "0.3.0"], "ReleaseFailure"]
+            }
+        ]
+    ],
+    {"v0.3.0", "Publishing requires a release-tag workflow", "The release tag must match PacletInfo.wl",
+        "Publishing requires a release-tag workflow"},
+    TestID -> "Publish-Only-From-A-Matching-Release-Tag"
+]
+
+VerificationTest[
+    Block[{
+        checkRelease = Function[Null, "commit"], platformArchives = Function[Null, <||>],
+        verifyPaclet = Function[Null, Throw["Invalid archive", "ReleaseFailure"]],
+        CloudConnect = Function[Null, Throw["Connected too early", "ReleaseFailure"]]
+    }, Catch[publish[], "ReleaseFailure"]],
+    "Invalid archive",
+    TestID -> "Reject-Unverified-Build-Before-Connecting-To-Cloud"
+]
+
+VerificationTest[
+    Module[{events, calls = {}, resource, pageResult},
+        resource = CloudObject["https://example.invalid/obj/platform.paclet"];
+        pageResult = <|"Resource" -> <|"Deployed" -> True, "Resource" -> "https://example.invalid/obj/resource"|>,
+            "Site" -> <|"Site" -> "https://example.invalid/obj/GAPLink"|>, "Check" -> <|"OK" -> True|>|>;
+        events = Last @ Reap @ Block[{
+            checkRelease = Function[Null, "commit"],
+            platformArchives = Function[Null, AssociationMap[# <> ".paclet" &, systems]],
+            verifyPaclet = Function[Null, Sow["Verify"]],
+            setting = Function[Null, "test"],
+            CloudConnect = Function[Null, Sow["Connect"]], $CloudConnected = True,
+            pageCall = ((AppendTo[calls, {##}]; Sow["PacletPage"]; pageResult) &),
+            publishPlatform = Function[Null, Sow["Platform"]; <|"PacletFile" -> resource|>],
+            attachPlatforms = Function[Null, Sow["Route"]],
+            ResourceObject = Function[Null, Function[property, Sow["Resolve"]; resource]],
+            writeGitHubOutput = Function[Null, Null], Print = Function[Null, Null]
+        }, publish[]];
+        {
+            events,
+            First[First[calls]],
+            Lookup[Association[Drop[First[calls], 3]], "Build"],
+            Lookup[Association[Lookup[Association[Drop[First[calls], 3]], "ResourceOptions"]], "Build"]
+        }
+    ],
+    {{{"Verify", "Connect", "PacletPage", "Platform", "Platform", "Platform", "Platform", "Route", "Resolve"}},
+        "PublishPacletPage", False, False},
+    TestID -> "Publish-Reuses-Verified-Build-And-Routes-The-Resource"
+]

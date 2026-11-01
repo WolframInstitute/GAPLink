@@ -1,3 +1,4 @@
+import hashlib
 import threading
 import unittest
 from http.server import BaseHTTPRequestHandler, HTTPServer
@@ -13,8 +14,8 @@ class Handler(BaseHTTPRequestHandler):
     responses = {
         "/paclet": (200, "application/zip", b"PK\x03\x04"),
         "/range": (206, "application/zip", b"PK\x03\x04"),
-        "/page": (200, "text/html; charset=utf-8", b"<title>GAPLink</title>"),
         "/resource": (200, "text/plain; charset=utf-8", b'ResourceObject[<|"Name" -> "WolframInstitute/GAPLink"|>]'),
+        "/platforms": (200, "text/plain", b'If[True, ResourceObject[<|"Name" -> "WolframInstitute/GAPLink"|>], $Failed]'),
         "/bad-resource": (200, "text/plain", b"Sign in"),
         "/wrong-resource": (200, "text/plain", b'ResourceObject[<|"Name" -> "AnotherPaclet"|>]'),
         "/redirect": (302, "text/html", b""),
@@ -54,8 +55,8 @@ class PublicDownloadTests(unittest.TestCase):
         for path, content_type in [
             ("/paclet", "application/zip"),
             ("/range", "application/zip"),
-            ("/page", "text/html"),
             ("/resource", "text/plain"),
+            ("/platforms", "text/plain"),
         ]:
             with self.subTest(path=path):
                 cloud.verify(self.url + path, content_type)
@@ -65,9 +66,12 @@ class PublicDownloadTests(unittest.TestCase):
             with self.subTest(path=path), self.assertRaises((OSError, ValueError)):
                 cloud.verify(self.url + path, "application/zip")
 
-    def test_reject_signin_page(self):
-        with self.assertRaises(ValueError):
-            cloud.verify(self.url + "/signin", "text/html")
+    def test_resource_description_hash(self):
+        for path in ("/resource", "/platforms"):
+            expected = hashlib.sha256(Handler.responses[path][2]).hexdigest()
+            cloud.verify(self.url + path, "text/plain", expected)
+            with self.assertRaisesRegex(ValueError, "differs"):
+                cloud.verify(self.url + path, "text/plain", "0" * 64)
 
     def test_reject_invalid_resource(self):
         for path in ("/bad-resource", "/wrong-resource", "/signin", "/redirect", "/private"):

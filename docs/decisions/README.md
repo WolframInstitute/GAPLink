@@ -26,3 +26,4 @@ Records:
 - [0017: Windows runtime archives](0017-windows-runtime-archives.md)
 - [0018: Windows shortcut files](0018-windows-shortcut-files.md)
 - [0019: Runtime inventory exclusions](0019-runtime-inventory-exclusions.md)
+- [0020: PacletPage publishing](0020-pacletpage-publishing.md)

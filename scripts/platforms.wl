@@ -1,7 +1,7 @@
-publicCloudFileQ[url_String, type_String] := Module[{response},
-    response = Quiet @ Check[RunProcess[{
+publicCloudFileQ[url_String, type_String, hash_: None] := Module[{response},
+    response = Quiet @ Check[RunProcess[Join[{
         "python3", FileNameJoin[{scriptDirectory, "verify-cloud.py"}], url, type
-    }], $Failed];
+    }, If[StringQ[hash], {hash}, {}]]], $Failed];
     If[AssociationQ[response] && response["ExitCode"] =!= 0,
         Print[Lookup[response, "StandardError", ""]]
     ];
@@ -26,7 +26,8 @@ publishCloudFile[file_String, path_String, metadata_Association, type_String] :=
         MatchQ[{__Rule}], "Could not set public access for ", path
     ];
     scriptRequire[
-        publicCloudFileQ[First[object], type], TrueQ,
+        publicCloudFileQ[First[object], type,
+            If[type === "text/plain", FileHash[file, "SHA256", "HexString"], None]], TrueQ,
         "Anonymous download failed for ", First[object]
     ];
     First[object]
@@ -43,7 +44,7 @@ pacletResourceInfo[paclet_PacletObject, archive_CloudObject, system_String] := J
     |>
 ];
 
-publishPaclet[file_String, system_String, paclet_PacletObject, commit_String] := Module[
+publishPlatform[file_String, system_String, paclet_PacletObject, commit_String] := Module[
     {metadata, archive, info, description, resource},
     metadata = <|
         "Commit" -> commit,
@@ -71,78 +72,36 @@ publishPaclet[file_String, system_String, paclet_PacletObject, commit_String] :=
         KeyTake[info, {"Name", "UUID", "ResourceType", "Description"}],
         <|"ResourceLocation" -> CloudObject[resource]|>
     ]];
-    archive
+    info
 ];
 
+platformArchives[version_String] := AssociationMap[
+    Function[system, With[{file = FileNameJoin[{buildDirectory,
+        StringRiffle[{archivePrefix, system, version}, "-"] <> ".paclet"}]},
+        scriptRequire[file, FileExistsQ, "Missing verified platform archive: ", file]
+    ]], systems
+];
 
-publishAll[] := Module[
-    {
-        archive, archives, commit, paclet, page, pageFile,
-        prefix, systems, urls, version
-    },
-    paclet = PacletObject[File[pacletDirectory]];
-    scriptRequire[paclet, PacletObjectQ, "Cannot read source paclet"];
-    version = paclet["Version"];
-    systems = {
-        "Linux-x86-64", "MacOSX-ARM64", "MacOSX-x86-64",
-        "Windows-x86-64"
-    };
-    archives = FileNames["*.paclet", buildDirectory];
-    archives = Table[
-        archive = Select[
-            archives,
-            FileNameTake[#] === StringRiffle[
-                {archivePrefix, system, version}, "-"
-            ] <> ".paclet" &
-        ];
-        scriptRequire[
-            archive,
-            Length[#] === 1 &,
-            "Expected one paclet for ", system
-        ];
-        First[archive],
-        {system, systems}
-    ];
+(* This expression runs on the installing computer, not the publishing runner. *)
+platformDescription[resources_Association] := Replace[
+    With[{entries = resources}, HoldComplete[
+        If[KeyExistsQ[entries, $SystemID],
+            ResourceObject[entries[$SystemID]],
+            Failure["UnsupportedSystem", <|"MessageTemplate" ->
+                "GAPLink has no bundled runtime for `1`.", "MessageParameters" -> {$SystemID}|>]
+        ]
+    ]],
+    HoldComplete[expression_] :> ToString[Unevaluated[expression], InputForm]
+];
 
-    scriptRequire[
-        Quiet @ Check[
-            CloudConnect[
-                setting["WOLFRAM_CLOUD_USER"],
-                setting["WOLFRAM_CLOUD_PASSWORD"]
-            ],
-            $Failed
-        ],
-        # =!= $Failed &,
-        "Could not connect to Wolfram Cloud"
-    ];
-    scriptRequire[$CloudConnected, TrueQ, "Could not connect to Wolfram Cloud"];
-
-    commit = setting["RELEASE_COMMIT"];
-    urls = MapThread[
-        publishPaclet[#1, #2, paclet, commit] &,
-        {archives, systems}
-    ];
-    pageFile = FileNameJoin[{scriptDirectory, "resource-page.html"}];
-    scriptRequire[pageFile, FileExistsQ, "Resource page was not found"];
-    page = publishCloudFile[pageFile,
-        FileNameJoin[{"DeployedResources", "Paclet", "WolframInstitute", "GAPLink"}],
-        <|"Commit" -> commit, "Version" -> version|>,
-        "text/html"
-    ];
-    prefix = StringReplace[
-        First[urls],
-        systems[[1]] <> ".paclet" ~~ EndOfString -> ""
-    ];
-    writeGitHubOutput[
-        "archives" -> Length[urls],
-        "prefix" -> prefix,
-        "page" -> page
-    ];
-    Scan[Print["OK: ", #] &, urls];
-    Print["OK: ", page];
-    Print[
-        "Install with PacletInstall[ResourceObject[\"", prefix,
-        "\" <> $SystemID <> \".paclet\"][\"PacletFile\"], ",
-        "ForceVersionInstall -> True, \"ShowProgress\" -> True]"
-    ]
+attachPlatforms[resource_String, resources_Association, version_String, commit_String] := Module[
+    {file, description, object = CloudObject[resource], metadata},
+    file = FileNameJoin[{buildDirectory, archivePrefix <> "-platforms-" <> version <> ".wl"}];
+    scriptRequire[Export[file, platformDescription[resources], "Text"], StringQ,
+        "Could not write the platform resource description"];
+    description = publishCloudFile[file, "GAPLink/" <> FileNameTake[file],
+        <|"Commit" -> commit, "Version" -> version|>, "text/plain"];
+    metadata = Quiet @ Check[Association[MetaInformation /. Options[object, MetaInformation]], $Failed];
+    scriptRequire[metadata, AssociationQ, "Could not read PacletPage release metadata"];
+    setCloudMetadata[object, Append[metadata, "ResourceLocation" -> CloudObject[description]]]
 ];

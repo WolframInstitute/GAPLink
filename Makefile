@@ -1,7 +1,7 @@
 WOLFRAMSCRIPT ?= wolframscript
 
 .DEFAULT_GOAL := help
-.PHONY: help deps all check test test-gap sweep build runtime bundle verify verify-bundle publish lint hooks clean
+.PHONY: help deps all check test test-gap sweep build runtime bundle verify verify-bundle check-release publish lint hooks clean
 
 help:
 	@printf '  make %-14s %s\n' \
@@ -15,7 +15,7 @@ help:
 		bundle 'platform archive with bundled GAP' \
 		verify 'verify the PacletPage archive' \
 		verify-bundle 'start GAP from the platform archive' \
-		publish 'publish verified platform releases' \
+		publish 'publish verified releases and documentation with PacletPage' \
 		all 'check, test, and build' \
 		hooks 'enable local Git hooks'
 
@@ -24,7 +24,7 @@ deps:
 
 all build: deps
 
-all check test test-gap build verify verify-bundle publish:
+all check test test-gap build verify verify-bundle check-release publish:
 	$(WOLFRAMSCRIPT) -file scripts/project.wls $@
 
 sweep:

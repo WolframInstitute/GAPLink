@@ -4,6 +4,11 @@ Notable changes are listed here.
 
 ## [Unreleased]
 
+### Changed
+
+- Publish the resource and documentation site with PacletPage using CI's verified build.
+- Keep existing platform downloads and select the bundled runtime in the generated install commands.
+
 ## [0.3.0] - 2026-11-01
 
 ### Added
