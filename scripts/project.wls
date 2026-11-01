@@ -151,7 +151,8 @@ buildBundle[system_String, runtime_String] := Module[{stage, source, target, inf
         "Extensions" -> Append[info["Extensions"],
             {"Asset", "Root" -> "Resources", "Assets" -> {{"GAPRuntime", "Runtime"}}}]|>];
     Put[PacletObject[info], FileNameJoin[{stage, "PacletInfo.wl"}]];
-    CopyDirectory[runtime, FileNameJoin[{stage, "Resources", "Runtime"}]];
+    scriptRequire[CopyDirectory[runtime, FileNameJoin[{stage, "Resources", "Runtime"}]],
+        StringQ, "Could not copy runtime: ", runtime];
     (* Reuse the verified documentation build for every platform. PacletPage
        still checks its hashes, creates the manifest, and packs each archive. *)
     Scan[Function[path,
@@ -171,6 +172,9 @@ buildBundle[system_String, runtime_String] := Module[{stage, source, target, inf
     archive = FileNameJoin[{DirectoryName[stage],
         StringRiffle[{archivePrefix, system, info["Version"]}, "-"] <> ".paclet"}];
     CopyFile[result["Archive"], archive, OverwriteTarget -> True];
+    result = RunProcess[{"python3", FileNameJoin[{scriptDirectory, "verify-runtime.py"}], archive, runtime}];
+    Print[result["StandardOutput"]];
+    scriptRequire[result["ExitCode"], # === 0 &, result["StandardError"]];
     Print["OK: ", archive];
     archive
 ];
@@ -239,6 +243,13 @@ verifyBundle[] := Module[
     ]
 ];
 
+verifyBundleInFreshKernel[] := Module[{result},
+    result = RunProcess[{"wolframscript", "-file",
+        FileNameJoin[{scriptDirectory, "project.wls"}], "verify-bundle"}];
+    Print[result["StandardOutput"]];
+    scriptRequire[result["ExitCode"], # === 0 &, result["StandardError"], "Bundle verification failed"]
+];
+
 runCI[] := Module[{gapRoot, runtimeRoot, versions},
     gapRoot = FileNameJoin[{buildDirectory, "gap-versions"}];
     runtimeRoot = FileNameJoin[{buildDirectory, "ci-runtimes"}];
@@ -248,17 +259,17 @@ runCI[] := Module[{gapRoot, runtimeRoot, versions},
     versions = Sort[FileNameTake /@ Select[FileNames[All, gapRoot], DirectoryQ]];
     scriptRequire[versions, # =!= {} &, "No GAP versions found"];
     Scan[Function[version,
-        SetEnvironment["GAPLINK_GAP" -> FileNameJoin[{gapRoot, version, "gap"}],
-            "GAPLINK_EXPECTED_GAP_VERSION" -> version];
+        SetEnvironment[{"GAPLINK_GAP" -> FileNameJoin[{gapRoot, version, "gap"}],
+            "GAPLINK_EXPECTED_GAP_VERSION" -> version}];
         runGAPTests[]
     ], versions];
-    SetEnvironment["GAPLINK_GAP" -> FileNameJoin[{runtimeRoot, $SystemID, "runtime", "gap"}],
-        "GAPLINK_EXPECTED_GAP_VERSION" -> Last[versions]];
+    SetEnvironment[{"GAPLINK_GAP" -> FileNameJoin[{runtimeRoot, $SystemID, "runtime", "gap"}],
+        "GAPLINK_EXPECTED_GAP_VERSION" -> Last[versions]}];
     runGAPTests[];
     buildPaclet[];
     Scan[buildBundle[#, FileNameJoin[{runtimeRoot, #, "runtime"}]] &, systems];
     SetEnvironment["GAPLINK_VERIFY_INSTALL" -> "1"];
-    verifyBundle[]
+    verifyBundleInFreshKernel[]
 ];
 
 command = If[Length[$ScriptCommandLine] > 1, $ScriptCommandLine[[2]], "all"];
