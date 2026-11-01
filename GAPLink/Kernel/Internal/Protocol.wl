@@ -103,6 +103,9 @@ protocolEncodeData[value_ByteArray, _Integer] :=
     protocolNode["b", protocolHex[Normal[value]]]
 
 protocolEncodeData[value_Cycles, depth_Integer] := Module[{images},
+    If[!TrueQ[PermutationCyclesQ[value]] || Max[Append[Flatten[First[value]], 0]] > 10000,
+        Return[unsupportedValue[value]]
+    ];
     images = Quiet @ Check[PermutationList[value], $Failed];
     If[ListQ[images] && PermutationListQ[images],
         protocolEncodeContainer["p", images, depth],

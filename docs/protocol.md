@@ -88,7 +88,7 @@ A request payload is a record with an `"Operation"` field.
 | Operation | Other fields |
 | --- | --- |
 | `"Hello"` | none |
-| `"Call"` | `"Name"`, `"Arguments"`, `"ReturnType"` |
+| `"Call"` | `"Name"` or `"Function"`, `"Arguments"`, `"ReturnType"`; optional `"Options"` |
 | `"Evaluate"` | `"Code"`, `"ReturnType"` |
 | `"LoadedPackages"` | none |
 | `"Normal"` | `"Object"` |
@@ -96,6 +96,18 @@ A request payload is a record with an `"Operation"` field.
 | `"Close"` | none |
 
 `"ReturnType"` is `"Automatic"` or `"Object"`.
+
+`Call` looks up a global name or a dotted record path, or resolves a retained
+function reference. `Options` is a record of GAP's named options; any object
+references in it belong to the same session. The previous option stack is
+restored after the call, including when GAP reports an error.
+
+Automatic copying allows 32 nested levels and 10,000 entries in total across
+lists and records. Permutations moving points above 10,000 stay in GAP rather
+than expanding into dense lists. Characters stay in GAP to retain their table.
+
+Outgoing Wolfram Language permutations are checked before expanding their images.
+Larger permutations must be created in GAP and passed by reference.
 
 `Evaluate` reads complete GAP commands and returns the last value. It returns `Null` when
 the code has no value.

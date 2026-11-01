@@ -5,7 +5,8 @@ VerificationTest[
     {
         TimeConstraint -> Infinity,
         "Output" -> "Print",
-        "ReturnType" -> "Automatic"
+        "ReturnType" -> "Automatic",
+        "GAPOptions" -> <||>
     },
     TestID -> "Call-Defaults"
 ]
@@ -16,6 +17,8 @@ VerificationTest[
             GAPCall[GAPSession["missing"], "Size", TimeConstraint -> 0],
             GAPCall[GAPSession["missing"], "Size", "Output" -> "Other"],
             GAPCall[GAPSession["missing"], "Size", "ReturnType" -> "Other"],
+            GAPCall[GAPSession["missing"], "Size", "GAPOptions" -> {}],
+            GAPCall[GAPSession["missing"], "Size", "GAPOptions" -> <|1 -> True|>],
             GAPCall[GAPSession["missing"], "Size", "Other" -> 1]
         },
         {Failure["GAPInvalidOption", _] ..}
@@ -28,7 +31,8 @@ VerificationTest[
     MatchQ[
         {
             GAPCall[GAPSession["missing"], "IdFunc", Null],
-            GAPCall[GAPSession["missing"], "IdFunc", Hold[1]]
+            GAPCall[GAPSession["missing"], "IdFunc", Hold[1]],
+            GAPCall[GAPSession["missing"], "IdFunc", Cycles[{{1, 1000000000}}]]
         },
         {Failure["GAPUnsupportedValue", _] ..}
     ],

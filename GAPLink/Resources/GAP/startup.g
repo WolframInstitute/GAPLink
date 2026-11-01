@@ -358,30 +358,35 @@ GAPLinkUnsupported := function(value, state, keep)
     return fail;
 end;
 
-GAPLinkAcyclic := function(value, parents, depth)
+GAPLinkAcyclic := function(value, parents, depth, remaining)
     local child, key, next;
-    if depth > 128 then
+    if depth > 32 then
         return false;
     elif IsString(value) and (Length(value) > 0 or IsStringRep(value)) then
         return true;
+    elif IsClassFunction(value) then
+        return true;
     elif IsList(value) then
-        if not IsDenseList(value) or
+        remaining[1] := remaining[1] - Length(value);
+        if remaining[1] < 0 or not IsDenseList(value) or
            ForAny(parents, x -> IsIdenticalObj(x, value)) then
             return false;
         fi;
         next := Concatenation(parents, [value]);
         for child in value do
-            if not GAPLinkAcyclic(child, next, depth + 1) then
+            if not GAPLinkAcyclic(child, next, depth + 1, remaining) then
                 return false;
             fi;
         od;
     elif IsRecord(value) then
-        if ForAny(parents, x -> IsIdenticalObj(x, value)) then
+        remaining[1] := remaining[1] - Length(RecNames(value));
+        if remaining[1] < 0 or
+           ForAny(parents, x -> IsIdenticalObj(x, value)) then
             return false;
         fi;
         next := Concatenation(parents, [value]);
         for key in RecNames(value) do
-            if not GAPLinkAcyclic(value.(key), next, depth + 1) then
+            if not GAPLinkAcyclic(value.(key), next, depth + 1, remaining) then
                 return false;
             fi;
         od;
@@ -413,7 +418,7 @@ end;
 
 GAPLinkEncode := function(value, depth, state, keep)
     local data, encoded, key, keys, parts;
-    if depth > 128 then
+    if depth > 32 then
         return GAPLinkUnsupported(value, state, keep);
     elif IsInt(value) then
         encoded := GAPLinkNode("i", String(value));
@@ -446,10 +451,15 @@ GAPLinkEncode := function(value, depth, state, keep)
             encoded := GAPLinkString(value);
         fi;
     elif IsPerm(value) then
+        if LargestMovedPoint(value) > 10000 then
+            return GAPLinkUnsupported(value, state, keep);
+        fi;
         data := GAPLinkEncodeSequence(ListPerm(value), depth, state);
         encoded := GAPLinkNode("p", data);
+    elif IsClassFunction(value) then
+        return GAPLinkUnsupported(value, state, keep);
     elif IsList(value) then
-        if depth = 0 and not GAPLinkAcyclic(value, [], 0) then
+        if depth = 0 and not GAPLinkAcyclic(value, [], 0, [10000]) then
             return GAPLinkUnsupported(value, state, keep);
         fi;
         data := GAPLinkEncodeSequence(value, depth, state);
@@ -458,7 +468,7 @@ GAPLinkEncode := function(value, depth, state, keep)
         fi;
         encoded := GAPLinkNode("l", data);
     elif IsRecord(value) then
-        if depth = 0 and not GAPLinkAcyclic(value, [], 0) then
+        if depth = 0 and not GAPLinkAcyclic(value, [], 0, [10000]) then
             return GAPLinkUnsupported(value, state, keep);
         fi;
         data := "";
@@ -551,29 +561,80 @@ GAPLinkValueResponse := function(value, returnType, state)
     return GAPLinkOK(encoded);
 end;
 
+GAPLinkNamedFunction := function(name)
+    local parts, value, key;
+    if IsBoundGlobal(name) then
+        return ValueGlobal(name);
+    fi;
+    parts := SplitString(name, ".");
+    if Length(parts) < 2 or JoinStringsWithSeparator(parts, ".") <> name or
+       not IsBoundGlobal(parts[1]) then
+        return fail;
+    fi;
+    value := ValueGlobal(parts[1]);
+    for key in parts{[2..Length(parts)]} do
+        if not IsRecord(value) or not IsBound(value.(key)) then
+            return fail;
+        fi;
+        value := value.(key);
+    od;
+    return value;
+end;
+
 GAPLinkCall := function(request, state)
-    local arguments, caught, func;
-    if not GAPLinkRequestQ(
-        request, ["Arguments", "Name", "Operation", "ReturnType"]
-    ) or request.Operation <> "Call" or
-       not IsString(request.Name) or not IsList(request.Arguments) or
+    local arguments, caught, func, names, options, savedOptions;
+    names := ["Arguments", "Operation", "ReturnType"];
+    if IsRecord(request) and IsBound(request.Name) then
+        Add(names, "Name");
+    else
+        Add(names, "Function");
+    fi;
+    if IsRecord(request) and IsBound(request.Options) then
+        Add(names, "Options");
+    fi;
+    if not GAPLinkRequestQ(request, names) or request.Operation <> "Call" or
+       not IsList(request.Arguments) or
        not (request.ReturnType in ["Automatic", "Object"]) then
         return fail;
     fi;
-    if not IsValidIdentifier(request.Name) or
-       not IsBoundGlobal(request.Name) or
-       not IsFunction(ValueGlobal(request.Name)) then
-        return GAPLinkError(
-            "GAPFunctionNotFound", "The GAP function could not be found."
-        );
-    fi;
-    func := ValueGlobal(request.Name);
     state.valid := true;
+    if IsBound(request.Name) then
+        if not IsString(request.Name) then
+            return GAPLinkError(
+                "GAPFunctionNotFound", "The GAP function could not be found."
+            );
+        fi;
+        func := GAPLinkNamedFunction(request.Name);
+    elif GAPLinkReferenceQ(request.Function) then
+        func := GAPLinkResolve(request.Function, state);
+    else
+        return fail;
+    fi;
     arguments := GAPLinkResolve(request.Arguments, state);
+    options := fail;
+    if IsBound(request.Options) then
+        if not IsRecord(request.Options) then
+            return fail;
+        fi;
+        options := GAPLinkResolve(request.Options, state);
+    fi;
     if not state.valid then
         return GAPLinkError("GAPInvalidObject", "The GAP object is not valid.");
     fi;
+    if not IsFunction(func) then
+        return GAPLinkError(
+            "GAPFunctionNotFound", "The GAP value is not a function."
+        );
+    fi;
+    if options <> fail then
+        savedOptions := ShallowCopy(OptionsStack);
+        PushOptions(options);
+    fi;
     caught := CALL_WITH_CATCH(func, arguments);
+    if options <> fail then
+        while Length(OptionsStack) > 0 do PopOptions(); od;
+        Append(OptionsStack, savedOptions);
+    fi;
     if caught[1] = false then
         return GAPLinkError("GAPError", "GAP reported an error.");
     elif Length(caught) = 1 then

@@ -7,12 +7,13 @@ PackageScoped["gapLinkOptionValues"]
 PackageScoped["gapLinkOutput"]
 PackageScoped["gapLinkRequestOptions"]
 
-GAPCall::usage = "GAPCall[session, name, args] calls a named GAP function."
+GAPCall::usage = "GAPCall[session, name, args] calls a GAP function by its global name or record path.\nGAPCall[session, function, args] calls a GAP function kept as a GAPObject."
 
 Options[GAPCall] = {
     TimeConstraint -> Infinity,
     "Output" -> "Print",
-    "ReturnType" -> "Automatic"
+    "ReturnType" -> "Automatic",
+    "GAPOptions" -> <||>
 };
 
 gapLinkBytes[bytes_ByteArray] := Module[{text},
@@ -109,32 +110,39 @@ gapLinkRequestOptions[head_Symbol, rules_List] := Module[{values},
 ]
 
 GAPCall[
-    session_GAPSession, name_String,
+    session_GAPSession, name : (_String | _GAPObject),
     arguments : Longest[Except[_Rule | _RuleDelayed]...],
     opts : OptionsPattern[]
 ] := Module[
     {args = {arguments}, options, output, payload, response, result,
-     returnType, time},
+     returnType, time, gapOptions, target},
     options = gapLinkRequestOptions[GAPCall, {opts}];
     If[FailureQ[options], Return[options]];
     {output, returnType, time} = options;
-    args = gapLinkObjectArguments[session, args];
-    If[FailureQ[args], Return[args]];
-    If[!FreeQ[args, Null], Return @ gapSessionFailure[
+    gapOptions = OptionValue["GAPOptions"];
+    If[!AssociationQ[gapOptions] || !AllTrue[Keys[gapOptions], StringQ],
+        Return[gapOptionFailure["GAPOptions"]]
+    ];
+    result = gapLinkObjectArguments[session, {name, args, gapOptions}];
+    If[FailureQ[result], Return[result]];
+    {target, args, gapOptions} = result;
+    If[!FreeQ[{args, gapOptions}, Null], Return @ gapSessionFailure[
         "GAPUnsupportedValue", "The value cannot be sent to GAP.",
         <|"Type" -> "Null"|>
     ]];
     payload = <|
         "Operation" -> "Call",
-        "Name" -> name,
         "Arguments" -> args,
         "ReturnType" -> returnType
     |>;
+    AssociateTo[payload, If[StringQ[name], "Name", "Function"] -> target];
+    If[gapOptions =!= <||>, AssociateTo[payload, "Options" -> gapOptions]];
     result = gapLinkProtocolEncodeValue[payload];
     If[FailureQ[result], Return[result]];
     response = gapLinkRunSessionRequest[session, payload, time];
     If[FailureQ[response], Return[response]];
-    result = gapCallResponse[response["Payload"], name, response["StandardError"]];
+    result = gapCallResponse[response["Payload"],
+        If[StringQ[name], name, "GAP function"], response["StandardError"]];
     If[MatchQ[result, Failure["GAPProtocolError", _]],
         gapLinkStopSession[session]
     ];
