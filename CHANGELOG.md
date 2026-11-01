@@ -15,6 +15,7 @@ Notable changes are listed here.
 ### Fixed
 
 - Keep characters in GAP so their character tables remain available.
+- Use GNU tar from Git for Windows and verify runtime archives before caching them.
 - Retain large or deeply nested containers and large permutations without expanding them for transfer. Reject oversized Wolfram Language permutations before allocating their dense images.
 
 ### Changed

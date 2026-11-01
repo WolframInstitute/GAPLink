@@ -22,3 +22,5 @@ Records:
 - [0013: Managed GAP runtime](0013-managed-gap-runtime.md)
 - [0014: Runtime builds](0014-runtime-builds.md)
 - [0015: CI license use](0015-ci-license.md)
+- [0016: Library coverage and PacletPage](0016-library-coverage-and-pacletpage.md)
+- [0017: Windows runtime archives](0017-windows-runtime-archives.md)
