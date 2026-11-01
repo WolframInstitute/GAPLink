@@ -4,6 +4,25 @@ Notable changes are listed here.
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-11-01
+
+### Added
+
+- Call retained GAP functions and functions in records, including the MTX library.
+- Pass GAP's named options with `"GAPOptions"`.
+- Add library tests and an upstream sweep with function availability and native comparisons.
+
+### Fixed
+
+- Keep characters in GAP so their character tables remain available.
+- Retain large or deeply nested containers and large permutations without expanding them for transfer. Reject oversized Wolfram Language permutations before allocating their dense images.
+
+### Changed
+
+- Build documentation and all paclet archives with pinned PacletPage tools.
+- Replace separate command scripts and manual archive creation with `scripts/project.wls`.
+- Keep documentation in Markdown and generate notebooks during builds.
+
 ## [0.2.3] - 2026-10-16
 
 ### Fixed
