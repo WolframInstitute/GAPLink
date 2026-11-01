@@ -16,6 +16,7 @@ Notable changes are listed here.
 
 - Keep characters in GAP so their character tables remain available.
 - Preserve Windows runtime shortcut files and verify archives before caching them.
+- Check bundled runtime files while allowing the archive builder's metadata and manual-page exclusions.
 - Retain large or deeply nested containers and large permutations without expanding them for transfer. Reject oversized Wolfram Language permutations before allocating their dense images.
 
 ### Changed

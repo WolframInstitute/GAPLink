@@ -43,6 +43,34 @@ class RuntimeArchiveTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "gap.exe"):
             runtime_check.verify(self.archive, self.runtime)
 
+    def test_allow_packaging_exclusions(self):
+        for name in ["tst/.gitignore", "runtime/usr/share/man/man1/\uf03a.1.gz"]:
+            path = self.runtime / name
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_bytes(b"packaging metadata or manual alias")
+        self.pack(self.files)
+        self.assertEqual(runtime_check.verify(self.archive, self.runtime), 2)
+
+    def test_check_excluded_file_when_present(self):
+        (self.runtime / ".gitignore").write_bytes(b"original")
+        self.pack({**self.files, ".gitignore": b"changed size"})
+        with self.assertRaisesRegex(ValueError, ".gitignore"):
+            runtime_check.verify(self.archive, self.runtime)
+
+    def test_reject_other_missing_hidden_files(self):
+        (self.runtime / ".gaprc").write_bytes(b"runtime settings")
+        self.pack(self.files)
+        with self.assertRaisesRegex(ValueError, ".gaprc"):
+            runtime_check.verify(self.archive, self.runtime)
+
+    def test_reject_other_missing_manual_pages(self):
+        path = self.runtime / "runtime/usr/share/man/man1/gap.1.gz"
+        path.parent.mkdir(parents=True)
+        path.write_bytes(b"manual")
+        self.pack(self.files)
+        with self.assertRaisesRegex(ValueError, "gap.1.gz"):
+            runtime_check.verify(self.archive, self.runtime)
+
     def test_runtime_tar_keeps_shortcut_file(self):
         archive = self.root / "runtime.tar.gz"
         subprocess.run([sys.executable, "-m", "tarfile", "--create", str(archive), "runtime"],

@@ -1,8 +1,13 @@
-"""Check that a platform paclet contains the complete source runtime."""
+"""Check bundled runtime files, allowing documented packaging exclusions."""
 
 import sys
 from pathlib import Path
 from zipfile import ZipFile
+
+
+def may_be_omitted(name):
+    # Wolfram's builder skips Git metadata and this Cygwin manual-page alias.
+    return Path(name).name == ".gitignore" or name == "runtime/usr/share/man/man1/\uf03a.1.gz"
 
 
 def verify(archive, runtime):
@@ -22,10 +27,11 @@ def verify(archive, runtime):
     differences = sorted(
         name for name in expected.keys() | actual.keys()
         if expected.get(name) != actual.get(name)
+        and not (name not in actual and may_be_omitted(name))
     )
     if differences:
         raise ValueError("Runtime files missing or changed: " + ", ".join(differences[:10]))
-    return len(expected)
+    return len(actual)
 
 
 if __name__ == "__main__":
