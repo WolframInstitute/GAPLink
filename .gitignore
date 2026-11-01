@@ -2,10 +2,15 @@
 /build/
 *.paclet
 
-# Generated documentation indexes
-GAPLink/Documentation/**/Index/
-GAPLink/Documentation/**/SearchIndex/
-GAPLink/Documentation/**/SpellIndex/
+# PacletPage tools and generated pages
+/.deps/
+/GAPLink/build/
+/GAPLink/Documentation/
+/GAPLink/ResourceDefinition.nb
+
+# Python script caches
+__pycache__/
+*.py[cod]
 
 # Wolfram Language generated files
 *.mx
@@ -35,9 +40,3 @@ Thumbs.db
 # nit stuff
 .nit/
 gol-snapshots
-
-# PacletPage tools and generated pages
-/.deps/
-/GAPLink/build/
-/GAPLink/Documentation/
-/GAPLink/ResourceDefinition.nb
