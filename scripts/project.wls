@@ -170,7 +170,7 @@ publish[] := Module[{commit, account, password, paclet, archives, result, resour
     scriptRequire[Quiet @ Check[CloudConnect[account, password], $Failed], # =!= $Failed &,
         "Could not connect to Wolfram Cloud"];
     scriptRequire[$CloudConnected, TrueQ, "Could not connect to Wolfram Cloud"];
-    result = pageCall["PublishPacletPage", pacletDirectory, "GAPLink", "Account" -> account,
+    result = pageCall["PublishPacletPage", pacletDirectory, "GAPLink/Documentation", "Account" -> account,
         "Build" -> False, "ResourceOptions" -> {"Build" -> False, "Parallel" -> False, "Commit" -> commit},
         "Monitor" -> True];
     scriptRequire[result, AssociationQ, "PacletPage publication failed"];

@@ -4,6 +4,12 @@ Notable changes are listed here.
 
 ## [Unreleased]
 
+## [0.3.2] - 2026-11-01
+
+### Fixed
+
+- Publish the documentation site without overwriting the platform download directory.
+
 ## [0.3.1] - 2026-11-01
 
 ### Changed

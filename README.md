@@ -39,7 +39,8 @@ pass the URL directly to `PacletInstall`.
 Stable `.paclet` files and checksums are also on
 [GitHub Releases](https://github.com/WolframInstitute/GAPLink/releases).
 
-See the [paclet resource page](https://www.wolframcloud.com/obj/wolframinstitute/DeployedResources/Paclet/WolframInstitute/GAPLink)
+See the [documentation](https://www.wolframcloud.com/obj/wolframinstitute/GAPLink/Documentation)
+and [paclet resource page](https://www.wolframcloud.com/obj/wolframinstitute/DeployedResources/Paclet/WolframInstitute/GAPLink/index.html)
 for more examples.
 
 ## Load from source

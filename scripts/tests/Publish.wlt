@@ -279,7 +279,7 @@ VerificationTest[
     Module[{events, calls = {}, resource, pageResult},
         resource = CloudObject["https://example.invalid/obj/platform.paclet"];
         pageResult = <|"Resource" -> <|"Deployed" -> True, "Resource" -> "https://example.invalid/obj/resource"|>,
-            "Site" -> <|"Site" -> "https://example.invalid/obj/GAPLink"|>, "Check" -> <|"OK" -> True|>|>;
+            "Site" -> <|"Site" -> "https://example.invalid/obj/GAPLink/Documentation"|>, "Check" -> <|"OK" -> True|>|>;
         events = Last @ Reap @ Block[{
             checkRelease = Function[Null, "commit"],
             platformArchives = Function[Null, AssociationMap[# <> ".paclet" &, systems]],
@@ -295,11 +295,12 @@ VerificationTest[
         {
             events,
             First[First[calls]],
+            First[calls][[3]],
             Lookup[Association[Drop[First[calls], 3]], "Build"],
             Lookup[Association[Lookup[Association[Drop[First[calls], 3]], "ResourceOptions"]], "Build"]
         }
     ],
     {{{"Verify", "Connect", "PacletPage", "Platform", "Platform", "Platform", "Platform", "Route", "Resolve"}},
-        "PublishPacletPage", False, False},
+        "PublishPacletPage", "GAPLink/Documentation", False, False},
     TestID -> "Publish-Reuses-Verified-Build-And-Routes-The-Resource"
 ]
