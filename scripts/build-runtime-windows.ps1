@@ -12,14 +12,8 @@ $ReleaseURL = "https://github.com/gap-system/gap/releases/download/v$Version"
 $RepositoryRoot = Split-Path $PSScriptRoot -Parent
 $SourceDirectory = Join-Path $RepositoryRoot "build/runtime-sources"
 $OutputDirectory = Join-Path $RepositoryRoot "build/runtimes/$SystemID"
-$ArchiveTools = Join-Path $env:ProgramFiles "Git/usr/bin"
-$Tar = Join-Path $ArchiveTools "tar.exe"
-if (-not (Test-Path $Tar) -or -not (Test-Path (Join-Path $ArchiveTools "gzip.exe"))) {
-    throw "Git for Windows is required to build the runtime"
-}
-$env:PATH = "$ArchiveTools;$env:PATH"
-& $Tar --version
-if ($LASTEXITCODE -ne 0) { throw "Could not start GNU tar (exit code $LASTEXITCODE)" }
+$Tar = Join-Path $env:SystemRoot "System32/tar.exe"
+$Python = (Get-Command python -CommandType Application -ErrorAction Stop).Source
 
 function Get-VerifiedFile($Name, $ExpectedHash) {
     $Path = Join-Path $SourceDirectory $Name
@@ -108,7 +102,7 @@ try {
     $RuntimeGapRoot = Join-Path $Runtime "runtime/opt/gap-$Version"
     $RuntimePackages = Join-Path $RuntimeGapRoot "pkg"
     New-Item -ItemType Directory -Force $RuntimePackages | Out-Null
-    & $Tar --force-local -xzf $PackagesArchive.Replace('\', '/') -C $RuntimePackages.Replace('\', '/')
+    & $Tar -xzf $PackagesArchive -C $RuntimePackages
     if ($LASTEXITCODE -ne 0) {
         throw "Could not extract required GAP packages (exit code $LASTEXITCODE)"
     }
@@ -180,11 +174,17 @@ try {
     Write-Host "Compressing runtime..."
     $ArchiveName = "GAPLink-runtime-$SystemID.tar.gz"
     $Archive = Join-Path $OutputDirectory $ArchiveName
-    & $Tar --force-local -czf $Archive.Replace('\', '/') -C $OutputDirectory.Replace('\', '/') runtime
-    if ($LASTEXITCODE -ne 0) {
-        throw "Could not create runtime archive (exit code $LASTEXITCODE)"
+    Push-Location $OutputDirectory
+    try {
+        & $Python -m tarfile --create $Archive runtime
+        if ($LASTEXITCODE -ne 0) {
+            throw "Could not create runtime archive (exit code $LASTEXITCODE)"
+        }
     }
-    & $Tar --force-local -tzf $Archive.Replace('\', '/') > $null
+    finally {
+        Pop-Location
+    }
+    & $Python -m tarfile --list $Archive > $null
     if ($LASTEXITCODE -ne 0) {
         throw "Could not verify runtime archive (exit code $LASTEXITCODE)"
     }

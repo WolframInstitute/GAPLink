@@ -1,6 +1,6 @@
 # Decision 0017: Windows runtime archives
 
-- Status: Accepted
+- Status: Superseded by [0018](0018-windows-shortcut-files.md)
 - Date: 2026-11-01
 - Owner: GAPLink maintainers
 

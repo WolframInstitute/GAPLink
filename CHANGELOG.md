@@ -15,7 +15,7 @@ Notable changes are listed here.
 ### Fixed
 
 - Keep characters in GAP so their character tables remain available.
-- Use GNU tar from Git for Windows and verify runtime archives before caching them.
+- Preserve Windows runtime shortcut files and verify archives before caching them.
 - Retain large or deeply nested containers and large permutations without expanding them for transfer. Reject oversized Wolfram Language permutations before allocating their dense images.
 
 ### Changed
@@ -23,6 +23,7 @@ Notable changes are listed here.
 - Build documentation and all paclet archives with pinned PacletPage tools.
 - Replace separate command scripts and manual archive creation with `scripts/project.wls`.
 - Keep documentation in Markdown and generate notebooks during builds.
+- Verify each GAP version separately and check installed bundles in a fresh kernel.
 
 ## [0.2.3] - 2026-10-16
 
