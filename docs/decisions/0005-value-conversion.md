@@ -48,8 +48,8 @@ GAPEvaluate[session, code, "ReturnType" -> "Object"]
 
 `Normal[object]` requests a copy when the object has a supported mapping.
 
-Automatic conversion has a documented size limit. Large containers become `GAPObject`
-values. We will set the first limit after measuring the process protocol.
+Automatic conversion is bounded. The current limits and character handling are
+defined in [decision 0016](0016-library-coverage-and-pacletpage.md).
 
 These values stay as `GAPObject` in the first version:
 

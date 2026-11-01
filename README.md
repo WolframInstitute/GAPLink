@@ -50,53 +50,79 @@ PacletDirectoryLoad["/path/to/GAPLink/GAPLink"];
 
 Source checkouts need a separate GAP installation.
 
-## Quick test
+## Examples
 
-Start a fresh kernel when testing an installed paclet. After loading from source, continue
-in the same kernel:
+Load GAPLink and start a session:
 
 ```wolfram
 Needs["WolframInstitute`GAPLink`"];
-
 session = StartGAPSession[];
-
-session["Version"]
-GAPCall[session, "Sum", Range[10]]
-GAPEvaluate[session, "Size(SymmetricGroup(4));"]
-GAPPackageAvailableQ[session, "gapdoc"]
-
-DeleteObject[session];
 ```
 
-`session["Version"]` reports the bundled GAP version. The other results should be `55`,
-`24`, and `True`.
-
-## Packages
+Count the permutations of five objects:
 
 ```wolfram
-session = StartGAPSession[];
-
-LoadGAPPackage[session, "gapdoc"]
-session["LoadedPackages"]
-
-DeleteObject[session];
-```
-
-`LoadGAPPackage` loads a package from the active GAP runtime. It does not download
-packages.
-
-## GAP objects
-
-```wolfram
-session = StartGAPSession[];
-group = GAPCall[session, "SymmetricGroup", 4];
-
+group = GAPCall[session, "SymmetricGroup", 5];
 GAPCall[session, "Size", group]
-
-DeleteObject /@ {group, session};
 ```
 
-The result is `24`. Values that cannot be copied stay in GAP as `GAPObject` values.
+```wolfram
+120
+```
+
+Find the dimensions of the irreducible representations of that group:
+
+```wolfram
+characters = GAPCall[session, "Irr", group];
+Sort[GAPCall[session, "DegreeOfCharacter", #] & /@ characters]
+```
+
+```wolfram
+{1, 1, 4, 4, 5, 5, 6}
+```
+
+Count the invertible 2-by-2 matrices over the field with three elements:
+
+```wolfram
+matrices = GAPEvaluate[session, "GL(2,3);"];
+GAPCall[session, "Size", matrices]
+```
+
+```wolfram
+48
+```
+
+Use a function returned by GAP:
+
+```wolfram
+square = GAPEvaluate[session, "x -> x^2;"];
+GAPCall[session, "List", {1, 2, 3, 4}, square]
+```
+
+```wolfram
+{1, 4, 9, 16}
+```
+
+Close the session when finished:
+
+```wolfram
+DeleteObject[session];
+```
+
+## Functions and values
+
+`GAPCall` accepts GAP function names, record paths such as `"MTX.Dimension"`,
+and functions held in a `GAPObject`. Use `"GAPOptions" -> <|"name" -> value|>`
+for GAP's named options. `GAPEvaluate` accepts complete GAP source code.
+
+Groups, characters, finite fields, and other values that cannot be copied remain
+in GAP as `GAPObject` values. Pass them to further calls in the same session.
+Use `"ReturnType" -> "Object"` to retain a complete result, and `Normal[object]`
+to copy a supported value. Large, cyclic, or sparse containers stay in GAP.
+
+`LoadGAPPackage` makes an installed package's functions available through the
+same interface. It does not download packages. The [coverage report](docs/coverage.md)
+describes what is checked and what requires a separate package or interactive GAP.
 
 ## Use another GAP
 
@@ -109,6 +135,8 @@ session = StartGAPSession["Executable" -> "/path/to/gap"];
 ## Development
 
 Development needs `wolframscript`, Git, `make`, Python 3, and GAP 4.14–4.16.
+`make all` fetches pinned PacletPage tools, checks the source, runs offline tests,
+and builds documentation and the archive. GAP is needed for the documentation examples.
 
 ```bash
 make all
@@ -118,7 +146,7 @@ make test-gap
 Set the GAP path when needed:
 
 ```bash
-GAPLINK_GAP=/path/to/gap make test-gap
+GAPLINK_GAP=/path/to/gap make all test-gap
 ```
 
 Build and test a platform paclet:

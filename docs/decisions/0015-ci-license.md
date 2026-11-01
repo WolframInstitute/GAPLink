@@ -1,6 +1,6 @@
 # Decision 0015: CI license use
 
-- Status: Accepted
+- Status: Superseded for archive builds by [decision 0016](0016-library-coverage-and-pacletpage.md)
 - Date: 2026-09-02
 - Owner: GAPLink maintainers
 

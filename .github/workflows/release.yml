@@ -142,7 +142,7 @@ jobs:
         run: |
           apt-get update
           apt-get install -y --no-install-recommends python3
-          wolframscript -file scripts/publish.wls
+          wolframscript -file scripts/project.wls publish
 
       - name: Add summary
         run: |

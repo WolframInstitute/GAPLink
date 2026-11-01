@@ -41,7 +41,26 @@ make bundle
 make verify-bundle
 ```
 
-Runtime builds also need a C/C++ compiler, `curl`, and `tar`. Paclet bundles need `zip`.
+`make all` fetches pinned PacletPage tools, checks the source, runs offline tests,
+and builds the documentation and archive. The examples are evaluated against GAP;
+set `GAPLINK_GAP` when it is not on `PATH`. `make check test` remains GAP-free.
+
+Edit documentation in `docs/en/` and `docs/ResourceDefinition.md`. PacletPage
+creates the notebooks, builds the archive, checks its pages, and loads it in a
+fresh kernel. Generated notebooks and build caches are not committed.
+
+The same builder creates platform archives. Native runtime builders and the
+platform cloud uploader remain separate because they manage platform-specific
+binaries and the existing download URLs.
+
+To run upstream tests with a matching GAP source tree:
+
+```bash
+GAPLINK_GAP=/path/to/gap GAPLINK_SOURCE=/path/to/gap-source make sweep
+```
+
+Reports are written to `build/coverage/`; see [coverage](docs/coverage.md).
+Runtime builds also need a C/C++ compiler, `curl`, and `tar`.
 
 The official Windows `gap.bat` layout is supported. Native Windows still needs the live
 session test before it is listed as verified.
@@ -133,8 +152,8 @@ Before tagging a release:
 6. Push an annotated `v<version>` tag.
 
 ```bash
-git tag -a v0.2.3 -m "v0.2.3"
-git push origin v0.2.3
+git tag -a v0.3.0 -m "v0.3.0"
+git push origin v0.3.0
 ```
 
 The tag creates a GitHub release with the platform paclets, checksums, and GAP source

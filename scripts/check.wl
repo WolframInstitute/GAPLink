@@ -71,8 +71,8 @@ runCheck[] := Module[
         "PacletInfo.wl must have one Documentation extension"
     ];
     documentationFiles = FileNameJoin[{
-        pacletDirectory, "Documentation", "English", "ReferencePages",
-        "Symbols", Last[StringSplit[#, "`"]] <> ".nb"
+        repositoryRoot, "docs", "en", "Symbols",
+        Last[StringSplit[#, "`"]] <> ".md"
     }] & /@ exportedSymbols;
     missingDocumentation = Select[documentationFiles, !FileExistsQ[#] &];
     If[missingDocumentation =!= {},
@@ -80,7 +80,7 @@ runCheck[] := Module[
     ];
     invalidDocumentation = Select[
         documentationFiles,
-        !MatchQ[Quiet @ Check[Get[#], $Failed], _Notebook] &
+        !StringContainsQ[ReadString[#], "Template: Symbol"] &
     ];
     If[invalidDocumentation =!= {},
         scriptFail["Invalid reference pages: ", invalidDocumentation]

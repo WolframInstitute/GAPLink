@@ -37,4 +37,6 @@ The [private process protocol](protocol.md) defines the messages exchanged with 
 - [CI builds and reuses checked runtime archives](decisions/0014-runtime-builds.md).
 - [CI uses one Wolfram kernel](decisions/0015-ci-license.md).
 
+- [Library coverage and archive builds use shared tools](decisions/0016-library-coverage-and-pacletpage.md).
+
 Record each choice in `docs/decisions/` before writing that part of the project.

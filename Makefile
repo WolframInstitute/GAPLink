@@ -1,61 +1,48 @@
 WOLFRAMSCRIPT ?= wolframscript
 
 .DEFAULT_GOAL := help
-.PHONY: help all check test test-gap build runtime bundle verify verify-bundle publish lint hooks clean
+.PHONY: help deps all check test test-gap sweep build runtime bundle verify verify-bundle publish lint hooks clean
 
 help:
 	@printf '  make %-14s %s\n' \
-		check  'metadata, lint, and source load' \
-		test   'GAP-free tests' \
-		test-gap 'startup test with installed GAP' \
-		build  '.paclet archive into build/' \
+		deps 'fetch pinned PacletPage tools' \
+		check 'metadata, lint, and source load' \
+		test 'tests without GAP' \
+		test-gap 'bridge and library tests with GAP' \
+		sweep 'upstream GAP tests and function coverage' \
+		build 'build docs and archive with PacletPage' \
 		runtime 'build GAP for this system' \
-		bundle 'platform paclet from the built runtime' \
-		verify 'load the archive in a fresh kernel' \
-		verify-bundle 'start GAP from the platform paclet' \
-		publish 'upload platform paclets to Wolfram Cloud' \
-		all    'GAP-free full check in one kernel' \
-		lint   'CodeInspector on FILES="..."' \
-		hooks  'enable the repository Git hooks' \
-		clean  'remove generated build output'
+		bundle 'platform archive with bundled GAP' \
+		verify 'verify the PacletPage archive' \
+		verify-bundle 'start GAP from the platform archive' \
+		publish 'publish verified platform releases' \
+		all 'check, test, and build' \
+		hooks 'enable local Git hooks'
 
-all:
-	$(WOLFRAMSCRIPT) -file scripts/all.wls
+deps:
+	scripts/fetch-deps.sh
 
-check:
-	$(WOLFRAMSCRIPT) -file scripts/check.wls
+all build: deps
 
-test:
-	$(WOLFRAMSCRIPT) -file scripts/test.wls
+all check test test-gap build verify verify-bundle publish:
+	$(WOLFRAMSCRIPT) -file scripts/project.wls $@
 
-test-gap:
-	$(WOLFRAMSCRIPT) -file scripts/test-gap.wls
-
-build:
-	$(WOLFRAMSCRIPT) -file scripts/build.wls
+sweep:
+	$(WOLFRAMSCRIPT) -file scripts/project.wls sweep
+	python3 scripts/coverage.py compare build/coverage
 
 runtime:
 	scripts/build-runtime.sh
 
 bundle: build
-	GAPLINK_RUNTIME="$(RUNTIME)" \
-	GAPLINK_SYSTEM_ID="$(SYSTEM_ID)" \
-	$(WOLFRAMSCRIPT) -file scripts/bundle.wls
-
-verify:
-	$(WOLFRAMSCRIPT) -file scripts/verify.wls
-
-verify-bundle:
-	$(WOLFRAMSCRIPT) -file scripts/verify-bundle.wls
-
-publish:
-	$(WOLFRAMSCRIPT) -file scripts/publish.wls
+	GAPLINK_RUNTIME="$(RUNTIME)" GAPLINK_SYSTEM_ID="$(SYSTEM_ID)" \
+	$(WOLFRAMSCRIPT) -file scripts/project.wls bundle
 
 lint:
-	$(WOLFRAMSCRIPT) -file scripts/lint.wls $(FILES)
+	$(WOLFRAMSCRIPT) -file scripts/project.wls lint $(FILES)
 
 hooks:
 	git config core.hooksPath .githooks
 
 clean:
-	rm -rf -- "$(CURDIR)/build"
+	rm -rf -- "$(CURDIR)/build" "$(CURDIR)/GAPLink/build" "$(CURDIR)/GAPLink/Documentation" "$(CURDIR)/GAPLink/ResourceDefinition.nb"

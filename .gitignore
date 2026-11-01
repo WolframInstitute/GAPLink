@@ -35,3 +35,9 @@ Thumbs.db
 # nit stuff
 .nit/
 gol-snapshots
+
+# PacletPage tools and generated pages
+/.deps/
+/GAPLink/build/
+/GAPLink/Documentation/
+/GAPLink/ResourceDefinition.nb
