@@ -6,25 +6,37 @@ installExample = First @ StringCases[
 ];
 
 VerificationTest[
-    And @@ Table[
-        Block[{
-            ResourceObject = Function[url, Function[property,
-                If[property === "PacletFile", CloudObject[url], $Failed]
-            ]],
-            PacletInstall = (Sow[{##}] &)
-        },
-            Last[Reap[ToExpression[StringReplace[
-                installExample, "$SystemID" -> ToString[system, InputForm]
-            ]]]] === {{
-                {CloudObject["https://www.wolframcloud.com/obj/wolframinstitute/GAPLink/" <>
-                    "WolframInstitute__GAPLink-" <> system <> ".paclet"],
-                    ForceVersionInstall -> True, "ShowProgress" -> True}
-            }}
-        ],
-        {system, {"Linux-x86-64", "MacOSX-ARM64", "MacOSX-x86-64", "Windows-x86-64"}}
+    Module[{resources, text},
+        resources = AssociationMap[
+            pacletResourceInfo[PacletObject[File[pacletDirectory]],
+                CloudObject["https://www.wolframcloud.com/obj/gaplink-test/" <> # <> ".paclet"], #] &,
+            systems
+        ];
+        text = platformDescription[resources];
+        Internal`InheritedBlock[{CloudObject}, Module[{page, description},
+            page = CloudObject["https://www.wolframcloud.com/obj/wolframinstitute/DeployedResources/Paclet/WolframInstitute/GAPLink"];
+            description = CloudObject["https://www.wolframcloud.com/obj/gaplink-test/platforms.wl"];
+            Unprotect[CloudObject];
+            With[{p = page, d = description},
+                CloudObject /: Verbatim[Options][p, MetaInformation] :=
+                    {MetaInformation -> <|"ResourceLocation" -> d|>};
+                CloudObject /: CloudGet[d] := ToExpression[
+                    StringReplace[text, "$SystemID" -> ToString[system, InputForm]]]
+            ];
+            (* Load the resource tools before intercepting archive installation. *)
+            Block[{system = First[systems]}, ResourceObject[First[page]]];
+            And @@ Table[
+                Block[{PacletInstall = (Sow[{##}] &)},
+                    Last[Reap[ToExpression[installExample]]] === {{
+                        {resources[system]["PacletFile"], ForceVersionInstall -> True, "ShowProgress" -> True}
+                    }}
+                ],
+                {system, systems}
+            ]
+        ]]
     ],
     True,
-    TestID -> "Install-Archive-With-Progress-On-Each-System"
+    TestID -> "Readme-Install-Selects-All-Four-Platforms-With-Progress"
 ]
 
 ClearAll[installExample];

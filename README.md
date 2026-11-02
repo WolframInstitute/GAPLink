@@ -21,15 +21,14 @@ Install the latest release for your system:
 ```wolfram
 PacletInstall[
     ResourceObject[
-        "https://www.wolframcloud.com/obj/wolframinstitute/GAPLink/" <>
-            "WolframInstitute__GAPLink-" <> $SystemID <> ".paclet"
+        "https://www.wolframcloud.com/obj/wolframinstitute/DeployedResources/Paclet/WolframInstitute/GAPLink"
     ]["PacletFile"],
     ForceVersionInstall -> True,
     "ShowProgress" -> True
 ];
 ```
 
-`$SystemID` selects the platform archive. The command shows download progress and
+The resource selects your platform automatically. The command shows download progress and
 allows reinstalling the same version. Versioned `.paclet` files and checksums are also on
 [GitHub Releases](https://github.com/WolframInstitute/GAPLink/releases).
 

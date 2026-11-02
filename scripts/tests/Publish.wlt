@@ -199,35 +199,6 @@ VerificationTest[
 ]
 
 VerificationTest[
-    Module[{resources, text},
-        resources = AssociationMap[
-            pacletResourceInfo[PacletObject[File[pacletDirectory]],
-                CloudObject["https://www.wolframcloud.com/obj/gaplink-test/" <> # <> ".paclet"], #] &,
-            systems
-        ];
-        text = platformDescription[resources];
-        Internal`InheritedBlock[{CloudObject}, Module[{page, description, results},
-            page = CloudObject["https://www.wolframcloud.com/obj/gaplink-test/DeployedResources/Paclet/WolframInstitute/GAPLink"];
-            description = CloudObject["https://www.wolframcloud.com/obj/gaplink-test/platforms.wl"];
-            Unprotect[CloudObject];
-            With[{p = page, d = description},
-                CloudObject /: Verbatim[Options][p, MetaInformation] :=
-                    {MetaInformation -> <|"ResourceLocation" -> d|>};
-                CloudObject /: CloudGet[d] := ToExpression[
-                    StringReplace[text, "$SystemID" -> ToString[system, InputForm]]]
-            ];
-            results = Table[
-                ResourceObject[First[page]]["PacletFile"],
-                {system, systems}
-            ];
-            results === Lookup[Values[resources], "PacletFile"]
-        ]]
-    ],
-    True,
-    TestID -> "Page-ResourceObject-Selects-All-Four-Platform-Archives"
-]
-
-VerificationTest[
     Module[{directory = CreateDirectory[], result, metadata},
         metadata = {"PacletVersion" -> "0.3.0", "PacletCommit" -> "commit", "Other" -> 1};
         result = Internal`InheritedBlock[{CloudObject},

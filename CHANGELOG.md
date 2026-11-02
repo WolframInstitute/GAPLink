@@ -15,6 +15,7 @@ Notable changes are listed here.
 
 - Exclude test suites and caches from published paclets, with archive checks before release.
 - Organize the README around installation, a quick start, examples, and development.
+- Let the public resource choose the platform in the README install command.
 
 ## [0.3.2] - 2026-11-01
 
