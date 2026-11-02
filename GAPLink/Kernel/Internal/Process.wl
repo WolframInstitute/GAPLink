@@ -94,9 +94,9 @@ gapEmptyChannel[buffer_: ByteArray[{}]] := <|
 |>
 
 gapReadChannel[
-    channel_String, state_Association, stream_, token_String, requestID_Integer
+    channel_String, state_Association, bytes_ByteArray, token_String, requestID_Integer
 ] := Module[{result, buffer},
-    buffer = gapJoinBytes[state["Buffer"], gapProcessBytes[stream]];
+    buffer = gapJoinBytes[state["Buffer"], bytes];
     result = gapLinkProtocolReadFrame[channel, buffer, token, requestID];
     If[FailureQ[result], Return[result]];
     If[result["Status"] === "Complete",
@@ -123,22 +123,30 @@ gapProcessFailure[tag_String, message_String, data_: <||>] := Failure[
 ]
 
 gapLinkWaitForResponse[state_Association, requestID_Integer] := Module[
-    {error, next, output, process = state["Process"], token = state["Token"]},
+    {
+        bytes, error, next, output, received, stderr, stdout,
+        process = state["Process"], token = state["Token"]
+    },
     output = gapEmptyChannel[state["StandardOutputBuffer"]];
     error = gapEmptyChannel[state["StandardErrorBuffer"]];
+    stdout = ProcessConnection[process, "StandardOutput"];
+    stderr = ProcessConnection[process, "StandardError"];
     While[True,
+        received = False;
         If[!output["Done"],
+            bytes = gapProcessBytes[stdout];
+            received = Length[bytes] > 0;
             next = gapReadChannel[
-                "Response", output,
-                ProcessConnection[process, "StandardOutput"], token, requestID
+                "Response", output, bytes, token, requestID
             ];
             If[FailureQ[next], Return[next]];
             output = next
         ];
         If[!error["Done"],
+            bytes = gapProcessBytes[stderr];
+            received = received || Length[bytes] > 0;
             next = gapReadChannel[
-                "ErrorEnd", error,
-                ProcessConnection[process, "StandardError"], token, requestID
+                "ErrorEnd", error, bytes, token, requestID
             ];
             If[FailureQ[next], Return[next]];
             error = next
@@ -155,7 +163,7 @@ gapLinkWaitForResponse[state_Association, requestID_Integer] := Module[
         If[ProcessStatus[process] =!= "Running", Return @ gapProcessFailure[
             "GAPProcessStopped", "The GAP process stopped."
         ]];
-        Pause[.01]
+        If[!received, Pause[.01]]
     ]
 ]
 

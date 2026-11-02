@@ -4,6 +4,10 @@ Notable changes are listed here.
 
 ## [Unreleased]
 
+### Fixed
+
+- Read available GAP output without pausing between chunks of a large reply.
+
 ## [0.3.2] - 2026-11-01
 
 ### Fixed
