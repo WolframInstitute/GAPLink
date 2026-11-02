@@ -98,10 +98,8 @@ type(optional-scope): short description
 
 ## CI
 
-CI uses Wolfram Engine 15.0. PacletPage also starts isolated build and load
-kernels, and its page builder uses a parallel kernel. Follow the entitlement
-settings used by [MathlibLink](https://github.com/WolframInstitute/MathlibLink/blob/main/docs/workflows.md#license-and-credentials)
-and [Ruliology](https://github.com/WolframInstitute/Ruliology/blob/main/scripts/entitlement.wl):
+CI uses Wolfram Engine 15.0. Create an entitlement that allows the build's
+regular and parallel kernels:
 
 ```wl
 entitlement = CreateLicenseEntitlement[
