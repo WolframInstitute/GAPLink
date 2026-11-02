@@ -5,6 +5,7 @@ Get[FileNameJoin[{scriptDirectory, "check.wl"}]];
 Get[FileNameJoin[{scriptDirectory, "platforms.wl"}]];
 
 systems = {"Linux-x86-64", "MacOSX-ARM64", "MacOSX-x86-64", "Windows-x86-64"};
+archiveExclusions = {"Tests", "Tests/*"};
 
 setting[name_String] := scriptRequire[Environment[name],
     StringQ[#] && StringTrim[#] =!= "" &, name, " is not set"];
@@ -69,13 +70,16 @@ pageCall[name_String, arguments___] := If[
     Symbol["WolframInstitute`PacletPage`" <> name][arguments]
 ];
 
-checkArchive[result_, load_: True] := (
+checkArchive[result_, load_: True] := Module[{check},
     scriptRequire[result, AssociationQ, "PacletPage build failed: ", result];
     If[load, scriptRequire[result["Load"]["OK"], TrueQ, "Archive failed its fresh-kernel load check"]];
     scriptRequire[result["Documentation"]["Missing"], # === {} &, "Archive is missing documentation"];
     scriptRequire[result["Documentation"]["Flagged"], # === <||> &, "Archive has invalid documentation"];
+    check = RunProcess[{"python3", FileNameJoin[{scriptDirectory, "verify-runtime.py"}],
+        "--archive", result["Archive"]}];
+    scriptRequire[check["ExitCode"], # === 0 &, check["StandardError"]];
     Print["OK: ", result["Pages"], " pages; ", result["Archive"]]
-);
+];
 
 prepareBuild[] := Module[{executable, session, files, fingerprint, stamp, cache, incremental},
     loadSource[];
@@ -106,7 +110,8 @@ buildPaclet[] := Module[{options = loadPublishing[], context, result, archive, d
     result = Block[{$CloudConnected = False},
         pageCall["PublishPacletPage", pacletDirectory, "GAPLink", "DryRun" -> True,
             "BuildOptions" -> options,
-            "ResourceOptions" -> {"Parallel" -> False, "Incremental" -> context["Incremental"]},
+            "ResourceOptions" -> {"Parallel" -> False, "Incremental" -> context["Incremental"],
+                "Exclude" -> archiveExclusions},
             "Monitor" -> True]
     ];
     scriptRequire[result, AssociationQ, "PacletPage build failed"];
@@ -126,7 +131,7 @@ verifyPaclet[] := Module[{result},
     loadPublishing[];
     result = Block[{$CloudConnected = False},
         pageCall["DeployPacletResource", pacletDirectory, "DryRun" -> True,
-            "Build" -> False, "Parallel" -> False]];
+            "Build" -> False, "Parallel" -> False, "Exclude" -> archiveExclusions]];
     checkArchive[result];
     result
 ];
@@ -171,7 +176,8 @@ publish[] := Module[{commit, account, password, paclet, archives, result, resour
         "Could not connect to Wolfram Cloud"];
     scriptRequire[$CloudConnected, TrueQ, "Could not connect to Wolfram Cloud"];
     result = pageCall["PublishPacletPage", pacletDirectory, "GAPLink/Documentation", "Account" -> account,
-        "Build" -> False, "ResourceOptions" -> {"Build" -> False, "Parallel" -> False, "Commit" -> commit},
+        "Build" -> False, "ResourceOptions" -> {"Build" -> False, "Parallel" -> False,
+            "Commit" -> commit, "Exclude" -> archiveExclusions},
         "Monitor" -> True];
     scriptRequire[result, AssociationQ, "PacletPage publication failed"];
     scriptRequire[result["Resource"]["Deployed"], TrueQ, "PacletPage resource was not published"];
@@ -193,6 +199,8 @@ buildBundle[system_String, runtime_String] := Module[{stage, source, target, inf
     loadPublishing[];
     stage = FileNameJoin[{buildDirectory, "bundles", system, "source"}];
     If[!DirectoryQ[stage], CreateDirectory[stage, CreateIntermediateDirectories -> True]];
+    target = FileNameJoin[{stage, "Tests"}];
+    If[DirectoryQ[target], DeleteDirectory[target, DeleteContents -> True]];
     Scan[Function[name,
         source = FileNameJoin[{pacletDirectory, name}];
         target = FileNameJoin[{stage, name}];
@@ -202,14 +210,15 @@ buildBundle[system_String, runtime_String] := Module[{stage, source, target, inf
             CopyDirectory[source, target],
             CopyFile[source, target, OverwriteTarget -> True]
         ]
-    ], {"Kernel", "Resources", "Documentation", "Tests", "ResourceDefinition.nb"}];
+    ], {"Kernel", "Resources", "Documentation", "ResourceDefinition.nb"}];
     info = KeyDrop[First[PacletObject[File[pacletDirectory]]], "Location"];
     info = Join[info, <|"Qualifier" -> system, "SystemID" -> system,
         "Extensions" -> Append[info["Extensions"],
             {"Asset", "Root" -> "Resources", "Assets" -> {{"GAPRuntime", "Runtime"}}}]|>];
     Put[PacletObject[info], FileNameJoin[{stage, "PacletInfo.wl"}]];
-    scriptRequire[CopyDirectory[runtime, FileNameJoin[{stage, "Resources", "Runtime"}]],
-        StringQ, "Could not copy runtime: ", runtime];
+    result = RunProcess[{"python3", FileNameJoin[{scriptDirectory, "verify-runtime.py"}],
+        "--stage", runtime, FileNameJoin[{stage, "Resources", "Runtime"}]}];
+    scriptRequire[result["ExitCode"], # === 0 &, result["StandardError"]];
     (* Reuse the verified documentation build for every platform. PacletPage
        still checks its hashes, creates the manifest, and packs each archive. *)
     Scan[Function[path,

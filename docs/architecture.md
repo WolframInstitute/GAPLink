@@ -40,5 +40,6 @@ The [private process protocol](protocol.md) defines the messages exchanged with 
 - [Library coverage and archive builds use shared tools](decisions/0016-library-coverage-and-pacletpage.md).
 - [PacletPage publishes the resource and documentation site](decisions/0020-pacletpage-publishing.md).
 - [The documentation site keeps platform download URLs unchanged](decisions/0021-documentation-site-path.md).
+- [Published paclets exclude test suites and caches](decisions/0022-release-contents.md).
 
 Record each choice in `docs/decisions/` before writing that part of the project.

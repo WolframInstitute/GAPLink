@@ -1,7 +1,7 @@
 PacletObject[<|
     "Name" -> "WolframInstitute/GAPLink",
     "PublisherID" -> "WolframInstitute",
-    "Version" -> "0.3.2",
+    "Version" -> "0.3.3",
     "WolframVersion" -> "15.0+",
     "Description" -> "Low-level Wolfram Language interoperability with GAP",
     "Creator" -> "Wolfram Institute",
@@ -38,11 +38,6 @@ PacletObject[<|
             "Documentation",
             "Root" -> "Documentation",
             "Language" -> "English"
-        },
-        {
-            "Test",
-            "Root" -> "Tests",
-            "Method" -> "Experimental-v1"
         }
     }
 |>]

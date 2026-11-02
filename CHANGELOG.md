@@ -4,9 +4,17 @@ Notable changes are listed here.
 
 ## [Unreleased]
 
+## [0.3.3] - 2026-11-03
+
 ### Fixed
 
 - Read available GAP output without pausing between chunks of a large reply.
+- Fix Windows installation errors caused by deeply nested Python test fixtures.
+
+### Changed
+
+- Exclude test suites and caches from published paclets, with archive checks before release.
+- Organize the README around installation, a quick start, examples, and development.
 
 ## [0.3.2] - 2026-11-01
 
@@ -120,7 +128,9 @@ Notable changes are listed here.
 - Fixed the GAP startup handshake.
 - Removed repeated macOS warnings during startup.
 
-[Unreleased]: https://github.com/WolframInstitute/GAPLink/compare/v0.3.1...HEAD
+[Unreleased]: https://github.com/WolframInstitute/GAPLink/compare/v0.3.3...HEAD
+[0.3.3]: https://github.com/WolframInstitute/GAPLink/compare/v0.3.2...v0.3.3
+[0.3.2]: https://github.com/WolframInstitute/GAPLink/compare/v0.3.1...v0.3.2
 [0.3.1]: https://github.com/WolframInstitute/GAPLink/compare/v0.3.0...v0.3.1
 [0.3.0]: https://github.com/WolframInstitute/GAPLink/compare/v0.2.3...v0.3.0
 [0.2.3]: https://github.com/WolframInstitute/GAPLink/compare/v0.2.2...v0.2.3

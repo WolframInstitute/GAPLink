@@ -4,19 +4,19 @@
 [![Release](https://github.com/WolframInstitute/GAPLink/actions/workflows/release.yml/badge.svg)](https://github.com/WolframInstitute/GAPLink/actions/workflows/release.yml)
 
 GAPLink connects Wolfram Language to [GAP](https://www.gap-system.org/).
-It starts GAP, loads packages, calls functions, and runs GAP code. PureMath is one user,
-but GAPLink works with any Wolfram Language project.
+Use GAP's groups, characters, finite fields, and packages from a Wolfram Language session.
 
-## Requirements
-
-- Wolfram Language 15.0 or later
-- Linux x86-64, macOS on Intel or Apple silicon, or Windows x86-64
-
-Release paclets include a tested GAP runtime and its required packages.
+[Documentation](https://www.wolframcloud.com/obj/wolframinstitute/GAPLink/Documentation)
+· [Paclet resource](https://www.wolframcloud.com/obj/wolframinstitute/DeployedResources/Paclet/WolframInstitute/GAPLink/index.html)
+· [Releases](https://github.com/WolframInstitute/GAPLink/releases)
 
 ## Install
 
-Install the latest release from Wolfram Cloud:
+GAPLink requires Wolfram Language 15.0 or later on Linux x86-64, macOS (Intel or
+Apple silicon), or Windows x86-64. Release paclets include GAP and its required
+packages; a separate GAP installation is not needed.
+
+Install the latest release for your system:
 
 ```wolfram
 PacletInstall[
@@ -29,40 +29,17 @@ PacletInstall[
 ];
 ```
 
-`$SystemID` is evaluated on your computer and selects its platform archive.
-`ForceVersionInstall -> True` allows reinstalling the same version.
-Installing the resource's `"PacletFile"` with `"ShowProgress" -> True` shows download progress.
-
-`ResourceObject` support starts with the `0.2.2` cloud release. For earlier releases,
-pass the URL directly to `PacletInstall`.
-
-Stable `.paclet` files and checksums are also on
+`$SystemID` selects the platform archive. The command shows download progress and
+allows reinstalling the same version. Versioned `.paclet` files and checksums are also on
 [GitHub Releases](https://github.com/WolframInstitute/GAPLink/releases).
 
-See the [documentation](https://www.wolframcloud.com/obj/wolframinstitute/GAPLink/Documentation)
-and [paclet resource page](https://www.wolframcloud.com/obj/wolframinstitute/DeployedResources/Paclet/WolframInstitute/GAPLink/index.html)
-for more examples.
+## Quick start
 
-## Load from source
-
-```wolfram
-PacletDirectoryLoad["/path/to/GAPLink/GAPLink"];
-```
-
-Source checkouts need a separate GAP installation.
-
-## Examples
-
-Load GAPLink and start a session:
+Load GAPLink, start GAP, and count the permutations of five objects:
 
 ```wolfram
 Needs["WolframInstitute`GAPLink`"];
 session = StartGAPSession[];
-```
-
-Count the permutations of five objects:
-
-```wolfram
 group = GAPCall[session, "SymmetricGroup", 5];
 GAPCall[session, "Size", group]
 ```
@@ -71,7 +48,13 @@ GAPCall[session, "Size", group]
 120
 ```
 
-Find the dimensions of the irreducible representations of that group:
+Keep this session open for the examples below. Loading GAPLink alone does not start GAP.
+
+## Examples
+
+### Characters
+
+Find the dimensions of the irreducible representations of the group above:
 
 ```wolfram
 characters = GAPCall[session, "Irr", group];
@@ -81,6 +64,8 @@ Sort[GAPCall[session, "DegreeOfCharacter", #] & /@ characters]
 ```wolfram
 {1, 1, 4, 4, 5, 5, 6}
 ```
+
+### Matrices over a finite field
 
 Count the invertible 2-by-2 matrices over the field with three elements:
 
@@ -93,6 +78,8 @@ GAPCall[session, "Size", matrices]
 48
 ```
 
+### GAP functions as values
+
 Use a function returned by GAP:
 
 ```wolfram
@@ -104,13 +91,23 @@ GAPCall[session, "List", {1, 2, 3, 4}, square]
 {1, 4, 9, 16}
 ```
 
-Close the session when finished:
+### Close the session
+
+Close GAP when finished:
 
 ```wolfram
 DeleteObject[session];
 ```
 
 ## Functions and values
+
+| Function | Purpose |
+| --- | --- |
+| `StartGAPSession` | Start GAP and return a `GAPSession`. |
+| `GAPCall` | Call a GAP function with Wolfram Language arguments. |
+| `GAPEvaluate` | Evaluate complete GAP source code. |
+| `GAPPackageAvailableQ` | Check whether a package is installed. |
+| `LoadGAPPackage` | Load an installed package. |
 
 `GAPCall` accepts GAP function names, record paths such as `"MTX.Dimension"`,
 and functions held in a `GAPObject`. Use `"GAPOptions" -> <|"name" -> value|>`
@@ -136,32 +133,25 @@ session = StartGAPSession["Executable" -> "/path/to/gap"];
 ## Development
 
 Development needs `wolframscript`, Git, `make`, Python 3, and GAP 4.14–4.16.
-`make all` fetches pinned PacletPage tools, checks the source, runs offline tests,
-and builds documentation and the archive. GAP is needed for the documentation examples.
+Load a source checkout before evaluating the quick start:
 
-```bash
-make all
-make test-gap
+```wolfram
+PacletDirectoryLoad["/path/to/GAPLink/GAPLink"];
 ```
 
-Set the GAP path when needed:
+Source checkouts need a separate GAP installation. Check the source, run tests,
+and build the documentation and paclet with:
 
 ```bash
 GAPLINK_GAP=/path/to/gap make all test-gap
 ```
 
-Build and test a platform paclet:
-
-```bash
-make runtime
-make bundle
-make verify-bundle
-```
-
-See [CONTRIBUTING.md](CONTRIBUTING.md) for the development workflow and
+`make all` fetches pinned PacletPage tools and evaluates the documentation examples.
+See [CONTRIBUTING.md](CONTRIBUTING.md) for platform builds and releases, and
 [docs/architecture.md](docs/architecture.md) for the main design rules.
 
 ## License
 
 GAPLink code uses the [MIT License](LICENSE). Release paclets also contain GAP, GMP, and
 GAP packages under their own licenses. Their license files are included with the runtime.
+Matching GAP source archives are available with each GitHub release.

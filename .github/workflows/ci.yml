@@ -148,6 +148,22 @@ jobs:
           $Actual = (Get-FileHash $Archives[0] -Algorithm SHA256).Hash.ToLowerInvariant()
           if ($Actual -ne $Expected) { throw "Runtime checksum does not match" }
 
+      - name: Check runtime without test suites
+        shell: pwsh
+        run: |
+          $Archive = Get-Item build/runtimes/Windows-x86-64/*.tar.gz
+          python -m tarfile --extract $Archive.FullName build/runtime-check/source
+          if ($LASTEXITCODE -ne 0) { throw "Could not extract runtime" }
+          python scripts/verify-runtime.py --stage build/runtime-check/source/runtime build/runtime-check/staged
+          if ($LASTEXITCODE -ne 0) { throw "Could not stage runtime" }
+          $Runtime = (Resolve-Path build/runtime-check/staged).Path
+          $Bash = Join-Path $Runtime "runtime/bin/bash.exe"
+          $Gap = Join-Path $Runtime "runtime/opt/gap-4.16.1/gap.exe"
+          $Script = 'export PATH="/usr/local/bin:/usr/bin:/bin:$PATH"; gap=$(/usr/bin/cygpath -u "$1"); shift; exec "$gap" "$@"'
+          $Check = 'if GAPInfo.Version<>"4.16.1" or Size(SymmetricGroup(5))<>120 then QUIT_GAP(1);fi;for p in ["gapdoc","perfgrp","primgrp","smallgrp","transgrp"] do if LoadPackage(p)=fail then QUIT_GAP(1);fi;od;QUIT_GAP(0);'
+          & $Bash --noprofile --norc -c $Script GAPLink $Gap -q -n -A -r --nointeract -c $Check
+          if ($LASTEXITCODE -ne 0) { throw "Staged GAP runtime failed" }
+
       - name: Upload runtime
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
