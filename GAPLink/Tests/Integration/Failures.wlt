@@ -51,6 +51,18 @@ VerificationTest[
 
 VerificationTest[
     stoppedTest[
+        GAPEvaluate[
+            #, "while true do WriteAll(OutputTextUser(), ListWithIdenticalEntries(8192, 'x')); od;",
+            TimeConstraint -> 1/10, "Output" -> "Discard"
+        ] &,
+        MatchQ[#, Failure["GAPTimeConstraintExceeded", _]] &
+    ],
+    stoppedExpected,
+    TestID -> "Stop-After-Timeout-With-Continuous-Output"
+]
+
+VerificationTest[
+    stoppedTest[
         CheckAbort[
             TimeConstrained[
                 GAPEvaluate[#, "while true do od;", "Output" -> "Discard"],
