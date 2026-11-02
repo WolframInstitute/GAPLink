@@ -98,28 +98,42 @@ type(optional-scope): short description
 
 ## CI
 
-CI uses Wolfram Engine 15.0. Create an entitlement that lasts long enough:
+CI uses Wolfram Engine 15.0. PacletPage also starts isolated build and load
+kernels, and its page builder uses a parallel kernel. Follow the entitlement
+settings used by [MathlibLink](https://github.com/WolframInstitute/MathlibLink/blob/main/docs/workflows.md#license-and-credentials)
+and [Ruliology](https://github.com/WolframInstitute/Ruliology/blob/main/scripts/entitlement.wl):
 
 ```wl
 entitlement = CreateLicenseEntitlement[
     <|
         "EntitlementExpiration" -> Quantity[1, "Years"],
         "LicenseExpiration" -> Quantity[1, "Hours"],
-        "StandardKernelLimit" -> 1
+        "StandardKernelLimit" -> 32,
+        "ParallelKernelLimit" -> 32
     |>
 ];
 
-entitlement["EntitlementID"]
+CopyToClipboard[entitlement["EntitlementID"]]
 ```
 
-CI runs its Wolfram jobs one at a time, so a kernel limit of `1` is enough. This may use
-Service Credits. Add the entitlement ID to GitHub:
+CI runs its Wolfram jobs one at a time, but the driver and its child kernels can
+overlap. A one-kernel limit is insufficient for this build. Creating an entitlement
+does not spend Service Credits; running kernels does. Add the entitlement ID to GitHub:
 
 ```bash
 gh secret set WOLFRAMSCRIPT_ENTITLEMENTID --repo WolframInstitute/GAPLink
 ```
 
-Paste the value when asked. GitHub keeps it until the entitlement expires.
+Paste only the entitlement ID when asked. Replace the secret when its entitlement expires.
+
+If a job reports `network license limit reached` or `No valid password found`
+before tests start, check the entitlement's validity and available kernel slots.
+Changing these instructions does not change an existing entitlement or secret.
+After correcting the secret, retry only the failed jobs:
+
+```bash
+gh run rerun <run-id> --failed --repo WolframInstitute/GAPLink
+```
 
 To use the same entitlement in more repositories:
 
