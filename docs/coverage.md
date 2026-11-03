@@ -7,7 +7,8 @@ Functions from additional packages become available after `LoadGAPPackage`.
 
 ## Checked on GAP 4.16.1
 
-The local sweep used the bundled macOS ARM64 runtime and matching GAP sources.
+The recorded baseline below used the bundled macOS ARM64 runtime and matching
+GAP sources, before the AtlasRep download example was excluded.
 
 | Check | Result |
 | --- | --- |
@@ -28,7 +29,7 @@ errors, and session ownership. They also exercise the bundled small, primitive,
 transitive, and perfect group libraries.
 
 The 16 differences also occur when the same tests run directly in GAP: 14 need
-the optional character-table library, and two print extra syntax warnings in this
+optional packages, and two print extra syntax warnings in this
 harness. The 11 inapplicable files contain no active inputs on this build. The
 nine exclusions cover external processes, workspace files, and interactive or
 file-system tests; their names are recorded in the report. These are separate
@@ -62,6 +63,11 @@ Run the upstream sweep on macOS or Linux with a matching GAP source tree:
 ```sh
 GAPLINK_GAP=/path/to/gap GAPLINK_SOURCE=/path/to/gap-source make sweep
 ```
+
+The offline sweep excludes `example_4.4.18.tst`: it calls `AtlasGenerators`,
+which can download data from AtlasRep, an optional package absent from the
+bundled runtime. Core MeatAxe tests and GAPLink's tests for calling library
+functions in records remain in the sweep and live bridge suite.
 
 The sweep does not download or install packages. Each test file runs in a fresh
 session with a 60-second limit. Files with differences are repeated in native

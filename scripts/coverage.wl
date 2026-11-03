@@ -36,7 +36,8 @@ runCoverage[] := Module[
 
     files = Sort @ Flatten[FileNames["*.tst", FileNameJoin[{source, "tst", #}], Infinity] & /@
         {"testinstall", "teststandard"}];
-    unsafe = RegularExpression["\\b(?:Exec|QUIT|QuitGap|ForceQuitGap|SaveWorkspace|LoadWorkspace|Edit|Pager|RemoveFile|FileString|Process|InputOutputLocalProcess|ChangeDirectoryCurrent)\\s*\\("];
+    (* AtlasGenerators can download data from the optional AtlasRep package. *)
+    unsafe = RegularExpression["\\b(?:Exec|QUIT|QuitGap|ForceQuitGap|SaveWorkspace|LoadWorkspace|Edit|Pager|RemoveFile|FileString|Process|InputOutputLocalProcess|ChangeDirectoryCurrent|AtlasGenerators)\\s*\\("];
     exclusions = Select[files, StringContainsQ[ReadString[#], unsafe] &];
     files = Complement[files, exclusions];
     code = "GAPLinkCoverageTest := function(path) local diffs; diffs := []; " <>
@@ -85,7 +86,7 @@ runCoverage[] := Module[
         "GAPVersion" -> version, "Tests" -> Counts[Lookup[rows, "Status"]],
         "Inputs" -> Total[Lookup[rows, "Inputs"]],
         "Excluded" -> (FileNameDrop[#, Length[FileNameSplit[source]]] & /@ exclusions),
-        "ExclusionReason" -> "Tests that launch programs, quit GAP, or manipulate external files need a separate harness."
+        "ExclusionReason" -> "Tests that launch programs, quit GAP, manipulate external files, or download AtlasRep data need a separate harness."
     |>, "RawJSON"];
     Print[Counts[Lookup[rows, "Status"]]];
     Print["Bridge sweep complete; native comparisons run next."]
