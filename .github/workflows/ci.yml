@@ -197,7 +197,7 @@ jobs:
             sudo wget zlib1g-dev
 
       - name: Set up GAP
-        uses: gap-actions/setup-gap@f12222f1b86ce1f8a246c4000abfd6e69893411c # v3
+        uses: gap-actions/setup-gap@ea616427de00475f603f3f455825f79f6d40e784 # v3
         with:
           gap-version: ${{ matrix.gap-version }}
 
