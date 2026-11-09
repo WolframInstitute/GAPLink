@@ -117,6 +117,12 @@ try {
     Remove-Item (Join-Path $Runtime "unins*") -Force -ErrorAction SilentlyContinue
     Remove-Item (Join-Path $Runtime "gap-mintty.bat") -Force -ErrorAction SilentlyContinue
     Remove-Item (Join-Path $Runtime "gapicon.ico") -Force -ErrorAction SilentlyContinue
+    # Read accounts from local files only.
+    [IO.File]::WriteAllText(
+        (Join-Path $Runtime "runtime/etc/nsswitch.conf"),
+        "# /etc/nsswitch.conf`npasswd: files`ngroup: files`ndb_home: /%H`n",
+        [Text.UTF8Encoding]::new($false)
+    )
 
     Write-Host "Checking runtime..."
     $RuntimeBash = Join-Path $Runtime "runtime/bin/bash.exe"
