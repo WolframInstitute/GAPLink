@@ -1,6 +1,7 @@
 (* ::Package:: *)
 
 PackageScoped["gapLinkGAPCommand"]
+PackageScoped["gapLinkGAPEnvironment"]
 PackageScoped["gapLinkRequest"]
 PackageScoped["gapLinkStartGAP"]
 PackageScoped["gapLinkStopProcess"]
@@ -76,6 +77,24 @@ gapLinkGAPCommand[executable_String] := Module[{startup = gapLinkStartupFile[]},
             ],
         True,
             Join[{executable}, $gapLinkGAPArguments, {startup}]
+    ]
+]
+
+(* The included Windows GAP does not ask Windows who the user is, so it cannot
+   find the home folder. Pass it, unless the user has already set one. *)
+gapLinkGAPEnvironment[
+    executable_String, environment_Association, home_: $HomeDirectory
+] := If[ToLowerCase @ FileExtension[executable] =!= "bat",
+    environment,
+    Join[
+        If[
+            StringQ[home] && home =!= "" &&
+                NoneTrue[Keys[environment], ToUpperCase[#] === "HOME" &],
+            <|"HOME" -> home|>,
+            <||>
+        ],
+        environment,
+        <|"BASH_ENV" -> "", "ENV" -> "", "TERM" -> ""|>
     ]
 ]
 
@@ -297,11 +316,9 @@ gapLinkStartGAP[path_: Automatic, time_: $gapLinkStartupTimeout] := Module[
     If[FailureQ[command], Return[command]];
 
     token = ToLowerCase @ StringReplace[CreateUUID[], "-" -> ""];
-    environment = Append[Association @ GetEnvironment[], "GAPLINK_TOKEN" -> token];
-    If[ToLowerCase @ FileExtension[executable] === "bat",
-        environment = Join[
-            environment, <|"BASH_ENV" -> "", "ENV" -> "", "TERM" -> ""|>
-        ]
+    environment = gapLinkGAPEnvironment[
+        executable,
+        Append[Association @ GetEnvironment[], "GAPLINK_TOKEN" -> token]
     ];
     process = Quiet @ Check[
         StartProcess[command, ProcessEnvironment -> environment],

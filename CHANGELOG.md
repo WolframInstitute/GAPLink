@@ -4,6 +4,12 @@ Notable changes are listed here.
 
 ## [Unreleased]
 
+### Fixed
+
+- Start the included GAP on Windows without waiting for Windows user lookups, which could
+  stall or time out.
+- Keep `~` in GAP pointing at the user's home folder on Windows.
+
 ## [0.3.3] - 2026-11-03
 
 ### Fixed

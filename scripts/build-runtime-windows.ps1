@@ -117,12 +117,22 @@ try {
     Remove-Item (Join-Path $Runtime "unins*") -Force -ErrorAction SilentlyContinue
     Remove-Item (Join-Path $Runtime "gap-mintty.bat") -Force -ErrorAction SilentlyContinue
     Remove-Item (Join-Path $Runtime "gapicon.ico") -Force -ErrorAction SilentlyContinue
-    # Read accounts from local files only.
-    [IO.File]::WriteAllText(
-        (Join-Path $Runtime "runtime/etc/nsswitch.conf"),
-        "# /etc/nsswitch.conf`npasswd: files`ngroup: files`ndb_home: /%H`n",
-        [Text.UTF8Encoding]::new($false)
-    )
+    # Read users and groups from local files only. Asking Windows can take a long
+    # time. GAP then runs as Cygwin's "unknown" user and group. Name them in the
+    # files too, or Cygwin asks Windows about them anyway. GAPLink passes the home
+    # folder instead.
+    $AccountFiles = [ordered]@{
+        "nsswitch.conf" = "# /etc/nsswitch.conf`npasswd: files`ngroup: files`n"
+        "passwd" = "Unknown+User:*:4294967295:4294967295:U-Unknown\User,S-1-99-0:/:/sbin/nologin`n"
+        "group" = "Unknown+Group:S-1-99-0:4294967295:`n"
+    }
+    foreach ($Name in $AccountFiles.Keys) {
+        [IO.File]::WriteAllText(
+            (Join-Path $Runtime "runtime/etc/$Name"),
+            $AccountFiles[$Name],
+            [Text.UTF8Encoding]::new($false)
+        )
+    }
 
     Write-Host "Checking runtime..."
     $RuntimeBash = Join-Path $Runtime "runtime/bin/bash.exe"

@@ -41,5 +41,6 @@ The [private process protocol](protocol.md) defines the messages exchanged with 
 - [PacletPage publishes the resource and documentation site](decisions/0020-pacletpage-publishing.md).
 - [The documentation site keeps platform download URLs unchanged](decisions/0021-documentation-site-path.md).
 - [Published paclets exclude test suites and caches](decisions/0022-release-contents.md).
+- [The Windows runtime does not ask Windows about users](decisions/0023-windows-user-lookups.md).
 
 Record each choice in `docs/decisions/` before writing that part of the project.

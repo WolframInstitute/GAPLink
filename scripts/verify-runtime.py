@@ -9,12 +9,34 @@ from zipfile import ZipFile
 
 TEST_DIRECTORIES = {"Tests", "test", "tests", "tst", "__pycache__", ".pytest_cache"}
 WINDOWS_REPOSITORY_LENGTH = 64  # Includes the separator before the installed paclet.
+WINDOWS_ACCOUNT_FILES = "/Resources/Runtime/runtime/etc/"
+UNKNOWN_ACCOUNT = "4294967295"  # Cygwin's ID for a user or group that is not in its files.
 
 
 def development_file(name):
     path = PurePosixPath(name)
     parts = path.parts if name.endswith("/") else path.parts[:-1]
     return bool(TEST_DIRECTORIES.intersection(parts)) or path.suffix in {".pyc", ".pyo", ".wlt"}
+
+
+def account_sources(settings):
+    """Give the places the Windows runtime reads users and groups from."""
+    sources = {}
+    for line in settings.splitlines():
+        name, found, value = line.split("#", 1)[0].partition(":")
+        if found and name.strip() in {"passwd", "group"}:
+            sources[name.strip()] = value.split()
+    return sources
+
+
+def asks_windows_for_accounts(files):
+    """Tell whether the Windows runtime can still ask Windows about users or groups."""
+    if account_sources(files.get("nsswitch.conf", "")) != {"passwd": ["files"], "group": ["files"]}:
+        return True
+    # Cygwin asks Windows about the unknown user and group unless the files name them.
+    return not all(
+        any(line.split(":")[2:3] == [UNKNOWN_ACCOUNT] for line in files.get(name, "").splitlines())
+        for name in ("passwd", "group"))
 
 
 def stage_runtime(runtime, destination):
@@ -49,6 +71,15 @@ def verify_release(archive):
             raise ValueError("Release declares a Test extension")
         if not re.search(r'"SystemID"\s*->\s*"Windows-x86-64"', info):
             return
+
+        # Asking Windows about users can stall GAP.
+        accounts = {}
+        for name in ("nsswitch.conf", "passwd", "group"):
+            found = [entry for entry in entries if entry.filename.endswith(WINDOWS_ACCOUNT_FILES + name)]
+            if len(found) == 1:
+                accounts[name] = paclet.read(found[0]).decode("utf-8")
+        if asks_windows_for_accounts(accounts):
+            raise ValueError("Windows runtime must read users and groups from local files only")
 
         def field(name):
             match = re.search('"' + name + r'"\s*->\s*"([^"]+)"', info)
