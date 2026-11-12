@@ -1,8 +1,11 @@
 Needs["WolframInstitute`GAPLink`"];
 
-{gapCommand, startGAP, validateHello} = Symbol[
+{gapCommand, gapEnvironment, startGAP, validateHello} = Symbol[
     "WolframInstitute`GAPLink`PackageScope`" <> #
-] & /@ {"gapLinkGAPCommand", "gapLinkStartGAP", "gapLinkValidateGAPHello"};
+] & /@ {
+    "gapLinkGAPCommand", "gapLinkGAPEnvironment", "gapLinkStartGAP",
+    "gapLinkValidateGAPHello"
+};
 
 windowsRoot = CreateDirectory @ FileNameJoin[{
     $TemporaryDirectory, "GAP Link " <> CreateUUID[]
@@ -58,6 +61,34 @@ VerificationTest[
     ],
     True,
     TestID -> "Build-Windows-GAP-Command"
+]
+
+VerificationTest[
+    gapEnvironment[
+        windowsLauncher, <|"PATH" -> "C:\\Windows"|>, "C:\\Users\\Ada"
+    ],
+    <|
+        "HOME" -> "C:\\Users\\Ada", "PATH" -> "C:\\Windows",
+        "BASH_ENV" -> "", "ENV" -> "", "TERM" -> ""
+    |>,
+    TestID -> "Pass-Home-To-Windows-GAP"
+]
+
+VerificationTest[
+    KeySelect[
+        gapEnvironment[
+            windowsLauncher, <|"Home" -> "D:\\Work"|>, "C:\\Users\\Ada"
+        ],
+        ToUpperCase[#] === "HOME" &
+    ],
+    <|"Home" -> "D:\\Work"|>,
+    TestID -> "Keep-Home-Already-Set-For-Windows-GAP"
+]
+
+VerificationTest[
+    gapEnvironment["/set/gap", <|"PATH" -> "/usr/bin"|>, "/home/ada"],
+    <|"PATH" -> "/usr/bin"|>,
+    TestID -> "Keep-Environment-For-Direct-GAP"
 ]
 
 VerificationTest[

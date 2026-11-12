@@ -59,6 +59,23 @@ VerificationTest[
 ]
 
 VerificationTest[
+    Module[{session},
+        session = StartGAPSession["Executable" -> gapExecutable];
+        If[FailureQ[session], Print["ERROR: ", session]; Return[{"Start GAP"}]];
+        WithCleanup[
+            failedChecks[
+                "Home folder" -> TrueQ @ GAPEvaluate[
+                    session, "IsDirectoryPath(GAPInfo.UserHome);"
+                ]
+            ],
+            DeleteObject[session]
+        ]
+    ],
+    {},
+    TestID -> "GAP-Finds-Home-Folder"
+]
+
+VerificationTest[
     Module[{afterError, captured, error, missing, result, session, values},
         session = StartGAPSession["Executable" -> gapExecutable];
         If[FailureQ[session], Print["ERROR: ", session]; Return[{"Start GAP"}]];
