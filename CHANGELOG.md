@@ -4,6 +4,8 @@ Notable changes are listed here.
 
 ## [Unreleased]
 
+## [0.4.1] - 2026-11-13
+
 ### Fixed
 
 - Let a release find its CI run when GitHub lists the run late: the release looks for it
@@ -153,7 +155,8 @@ Notable changes are listed here.
 - Fixed the GAP startup handshake.
 - Removed repeated macOS warnings during startup.
 
-[Unreleased]: https://github.com/WolframInstitute/GAPLink/compare/v0.4.0...HEAD
+[Unreleased]: https://github.com/WolframInstitute/GAPLink/compare/v0.4.1...HEAD
+[0.4.1]: https://github.com/WolframInstitute/GAPLink/compare/v0.4.0...v0.4.1
 [0.4.0]: https://github.com/WolframInstitute/GAPLink/compare/v0.3.3...v0.4.0
 [0.3.3]: https://github.com/WolframInstitute/GAPLink/compare/v0.3.2...v0.3.3
 [0.3.2]: https://github.com/WolframInstitute/GAPLink/compare/v0.3.1...v0.3.2
