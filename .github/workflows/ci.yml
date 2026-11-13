@@ -45,6 +45,32 @@ jobs:
           test -x scripts/build-runtime.sh
           bash -n scripts/build-runtime.sh
 
+      - name: Check license script
+        run: |
+          test -x scripts/license-machine-name.sh
+          sh -n scripts/license-machine-name.sh
+
+  # A license line is issued for one machine name. The Wolfram job container gets that name as
+  # its host name, so the name is read here, before that container starts. Without a license
+  # line it is a default name; see CONTRIBUTING.md, "CI".
+  license:
+    name: Wolfram license
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      machine-name: ${{ steps.machine.outputs.name }}
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      - name: Read the machine name of the license
+        id: machine
+        env:
+          WOLFRAM_MATHPASS_B64: ${{ secrets.WOLFRAM_MATHPASS_B64 }}
+        run: |
+          name=$(scripts/license-machine-name.sh)
+          echo "name=$name" >> "$GITHUB_OUTPUT"
+
   runtime-unix:
     name: GAP runtime (${{ matrix.system-id }})
     needs: repository
@@ -218,14 +244,17 @@ jobs:
 
   paclet:
     name: Check, test, and build platform paclets
-    needs: [runtime-unix, runtime-windows, gap-build]
+    needs: [license, runtime-unix, runtime-windows, gap-build]
     runs-on: ubuntu-latest
     timeout-minutes: 90
     container:
       image: wolframresearch/wolframengine:15.0
-      options: --user root
+      # The host name and the machine-id in .github/actions/wolfram-license give the
+      # container the MathID that the license line is issued for.
+      options: --user root --hostname ${{ needs.license.outputs.machine-name || 'gaplink-ci' }}
     env:
-      WOLFRAMSCRIPT_ENTITLEMENTID: ${{ secrets.WOLFRAMSCRIPT_ENTITLEMENTID }}
+      # With a license line the kernel is licensed offline, and the entitlement is left out.
+      WOLFRAMSCRIPT_ENTITLEMENTID: ${{ secrets.WOLFRAM_MATHPASS_B64 == '' && secrets.WOLFRAMSCRIPT_ENTITLEMENTID || '' }}
       QT_QPA_PLATFORM: offscreen
     steps:
       - name: Install build tools
@@ -237,12 +266,10 @@ jobs:
       - name: Check out repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
-      - name: Check Wolfram Engine entitlement
-        run: |
-          if [ -z "${WOLFRAMSCRIPT_ENTITLEMENTID:-}" ]; then
-            echo "::error title=Missing Wolfram license::Add WOLFRAMSCRIPT_ENTITLEMENTID as a repository secret; see CONTRIBUTING.md."
-            exit 1
-          fi
+      - name: Verify Wolfram Engine license
+        uses: ./.github/actions/wolfram-license
+        with:
+          mathpass: ${{ secrets.WOLFRAM_MATHPASS_B64 }}
 
       - name: Cache documentation tools
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0

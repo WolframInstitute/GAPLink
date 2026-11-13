@@ -17,6 +17,8 @@ Notable changes are listed here.
 - Follow the Wolfram Language coding guides in the kernel, the tests and the scripts, and
   check them with `make style`.
 - Shorten the README to installation, a quick start and links.
+- Let CI and publishing take the Wolfram license from a license line in the
+  `WOLFRAM_MATHPASS_B64` secret. Without it they use the entitlement as before.
 
 ## [0.3.3] - 2026-11-03
 

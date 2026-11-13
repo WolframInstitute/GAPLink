@@ -119,8 +119,44 @@ type(optional-scope): short description
 
 ## CI
 
-CI uses Wolfram Engine 15.0. Create an entitlement that allows the build's
-regular and parallel kernels:
+CI uses Wolfram Engine 15.0. The Wolfram job takes its license from one of two secrets: a
+license line or an entitlement. When both are set, it uses the license line.
+
+### License line
+
+`WOLFRAM_MATHPASS_B64` holds a license line (mathpass) for one machine. With it the kernel
+runs offline and spends no Service Credits.
+
+The line has four parts with tabs between them: machine name, MathID, activation key and
+password. Keep it in `.mathpass`, which git ignores, and store it base64-encoded, so that
+the tabs survive:
+
+```bash
+base64 < .mathpass | tr -d '\n' | gh secret set WOLFRAM_MATHPASS_B64 --repo WolframInstitute/GAPLink
+```
+
+The kernel knows a machine by its MathID. In a Linux container the MathID comes from the
+machine-id and the host name, so CI fixes both. `.github/actions/wolfram-license` sets the
+machine-id. The host name is the machine name at the start of the license line: the
+`Wolfram license` job reads it with `scripts/license-machine-name.sh`, and the Wolfram job
+starts its container under that name. Changing either changes the MathID, and the line then
+needs a new password.
+
+To get a license line for a new machine:
+
+1. Leave the secret unset. The container is then named `gaplink-ci`.
+2. Start CI with `gh workflow run ci.yml --ref main`. The step *Verify Wolfram Engine
+   license* prints the machine name and the MathID of the container, also when no license
+   works.
+3. Have a password issued for that MathID and your activation key. Write the four parts to
+   `.mathpass` and store the secret as above.
+
+The same step prints the license type and its expiry in every run.
+
+### Entitlement
+
+Without a license line the job uses an on-demand entitlement. Create one that allows the
+build's regular and parallel kernels:
 
 ```wl
 entitlement = CreateLicenseEntitlement[
@@ -178,7 +214,7 @@ gh secret set WOLFRAM_CLOUD_USER --repo WolframInstitute/GAPLink
 gh secret set WOLFRAM_CLOUD_PASSWORD --repo WolframInstitute/GAPLink
 ```
 
-The existing `WOLFRAMSCRIPT_ENTITLEMENTID` secret is also used to publish.
+Publishing uses the same license secret as CI.
 
 Before tagging a release:
 
