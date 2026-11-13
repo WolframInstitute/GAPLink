@@ -119,6 +119,13 @@ type(optional-scope): short description
 
 ## CI
 
+CI runs on pushes to `main` and pull requests into `main`, and by hand with
+`gh workflow run ci.yml --ref main`. It does not run for a change only to files it never
+reads, such as `CHANGELOG.md` and the decision records; `paths-ignore` in `ci.yml` lists
+them. To skip CI for another push, write `[skip ci]` in the body of its last commit, but
+not in a release commit: a release needs CI's build of its own commit. CI keeps its build
+artifacts for seven days.
+
 CI uses Wolfram Engine 15.0. The Wolfram job takes its license from one of two secrets: a
 license line or an entitlement. When both are set, it uses the license line.
 
@@ -223,7 +230,7 @@ Before tagging a release:
 3. Review the licenses for every included runtime file.
 4. Run `make all`.
 5. Push `main` and wait for all platform jobs.
-6. Push an annotated `v<version>` tag.
+6. Push an annotated `v<version>` tag on that commit.
 
 ```bash
 git tag -a v0.4.1 -m "v0.4.1"
@@ -239,4 +246,5 @@ the documentation pages and public access to each archive and resource descripti
 GitHub can list a CI run late, so the release looks for it for about five minutes
 (`scripts/find-ci-run.sh`). The cloud renders new pages late, so a failed check of the
 site is tried again for up to ten minutes, and the error names each check that still fails.
-To retry a failed release, rerun its failed jobs; do not move the tag.
+To retry a failed release, rerun its failed jobs; do not move the tag. CI keeps its build
+for seven days; once it has expired, rerun the CI run of the release commit first.

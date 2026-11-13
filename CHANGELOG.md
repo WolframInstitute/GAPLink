@@ -4,6 +4,13 @@ Notable changes are listed here.
 
 ## [Unreleased]
 
+### Changed
+
+- Run CI only for pushes to `main` and pull requests into `main` that change a file CI
+  reads: a change only to `CHANGELOG.md` or a decision record, for example, starts no
+  run. CI keeps its build artifacts for seven days and stops the paclet job after an
+  hour.
+
 ## [0.4.1] - 2026-11-13
 
 ### Fixed

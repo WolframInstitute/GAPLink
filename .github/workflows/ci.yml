@@ -3,7 +3,36 @@ name: CI
 on:
   push:
     branches: [main]
+    # CI never reads these files, so a change to them alone starts no run. Keep the list the
+    # same under push and pull_request.
+    paths-ignore:
+      - '.github/ISSUE_TEMPLATE/**'
+      - .github/PULL_REQUEST_TEMPLATE.md
+      - AGENTS.md
+      - CHANGELOG.md
+      - CONTRIBUTING.md
+      - SECURITY.md
+      - THIRD_PARTY_NOTICES.md
+      - docs/architecture.md
+      - docs/coverage.md
+      - 'docs/decisions/**'
+      - docs/legacy-gaplink.md
+      - docs/protocol.md
   pull_request:
+    branches: [main]
+    paths-ignore:
+      - '.github/ISSUE_TEMPLATE/**'
+      - .github/PULL_REQUEST_TEMPLATE.md
+      - AGENTS.md
+      - CHANGELOG.md
+      - CONTRIBUTING.md
+      - SECURITY.md
+      - THIRD_PARTY_NOTICES.md
+      - docs/architecture.md
+      - docs/coverage.md
+      - 'docs/decisions/**'
+      - docs/legacy-gaplink.md
+      - docs/protocol.md
   workflow_dispatch:
 
 permissions:
@@ -128,7 +157,7 @@ jobs:
           path: build/runtimes/${{ matrix.system-id }}/*.tar.gz*
           if-no-files-found: error
           compression-level: 0
-          retention-days: 30
+          retention-days: 7
 
       - name: Upload GAP sources
         if: matrix.system-id == 'Linux-x86-64'
@@ -138,7 +167,7 @@ jobs:
           path: build/runtime-sources/*.tar.gz
           if-no-files-found: error
           compression-level: 0
-          retention-days: 30
+          retention-days: 7
 
   runtime-windows:
     name: GAP runtime (Windows-x86-64)
@@ -197,7 +226,7 @@ jobs:
           path: build/runtimes/Windows-x86-64/*.tar.gz*
           if-no-files-found: error
           compression-level: 0
-          retention-days: 30
+          retention-days: 7
 
   gap-build:
     name: Build GAP ${{ matrix.gap-version }}
@@ -240,13 +269,13 @@ jobs:
           path: build/gap-versions/${{ matrix.gap-version }}.tar.gz
           if-no-files-found: error
           compression-level: 0
-          retention-days: 30
+          retention-days: 7
 
   paclet:
     name: Check, test, and build platform paclets
     needs: [license, runtime-unix, runtime-windows, gap-build]
     runs-on: ubuntu-latest
-    timeout-minutes: 90
+    timeout-minutes: 60
     container:
       image: wolframresearch/wolframengine:15.0
       # The host name and the machine-id in .github/actions/wolfram-license give the
@@ -337,7 +366,7 @@ jobs:
           name: GAPLink-coverage-${{ github.sha }}
           path: build/coverage/*.json
           if-no-files-found: ignore
-          retention-days: 30
+          retention-days: 7
 
       - name: Collect platform paclets
         run: |
@@ -355,7 +384,7 @@ jobs:
           path: build/pacletpage-build.tar.gz
           if-no-files-found: error
           compression-level: 0
-          retention-days: 30
+          retention-days: 7
 
       - name: Upload platform paclets
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
@@ -364,4 +393,4 @@ jobs:
           path: build/dist/*.paclet
           if-no-files-found: error
           compression-level: 0
-          retention-days: 30
+          retention-days: 7
