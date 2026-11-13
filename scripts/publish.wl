@@ -8,7 +8,7 @@ PackageExported[{CheckRelease, PublishPaclet}];
 (* ::Section:: *)
 (*PackageScoped*)
 
-PackageScoped[{releaseTag, gitText}];
+PackageScoped[{releaseTag, gitText, siteCheckFailure}];
 
 (* ::Section:: *)
 (*Usage Messages*)
@@ -25,6 +25,11 @@ association environment runs for that tag.";
 releaseTag::usage = "releaseTag[environment, version] gives the tag of the release-tag workflow that the association environment describes, and \
 stops the current task when the workflow is not one or its tag does not match the version.";
 gitText::usage = "gitText[arguments] gives the output of the git command with the given string arguments, and stops the current task when git fails.";
+$siteCheckWait::usage = "$siteCheckWait is the number of seconds that the check of the published site gives a failed check to pass. The cloud \
+renders the pages of a site some time after they are published.";
+failedCheckLine::usage = "failedCheckLine[result] gives the line that describes the failed check result: its name, the reason and the URL.";
+siteCheckFailure::usage = "siteCheckFailure[check] gives the error for published documentation that did not pass its checks, with a line for \
+each check that failed in check, the association that the site check of PacletPage gives.";
 
 (* ::Section:: *)
 (*Function Definitions*)
@@ -72,26 +77,48 @@ CheckRelease[environment_Association] :=
 CheckRelease[] := CheckRelease[Association[GetEnvironment[]]]
 CheckRelease[___] := invalidArgumentsFailure[CheckRelease]
 
+$siteCheckWait = 600;
+
+failedCheckLine[checkResult_Association] :=
+	StringJoin[
+		TextString[Lookup[checkResult, "Check", "A check"]],
+		": ",
+		TextString[Lookup[checkResult, "Detail", "failed"]],
+		" (",
+		TextString[Lookup[checkResult, "URL", "no URL"]],
+		")"
+	]
+
+siteCheckFailure[check_Association] :=
+	Module[{lines},
+		lines = Map[failedCheckLine, Cases[Lookup[check, "Failed", {}], _Association]];
+		StringRiffle[Prepend[lines, "Published documentation did not pass its checks" <> If[lines === {}, "", ":"]], "\n"]
+	]
+siteCheckFailure[___] := "Published documentation did not pass its checks"
+
+(* CloudConnect can print a message and still connect, so its messages go to the log and only the connection is
+   required. *)
 PublishPaclet[] :=
-	Module[{commit, paclet, archives, account, password, result, resource, resources},
+	Module[{commit, paclet, archives, account, password, connection, result, resource, resources},
 		commit = CheckRelease[];
 		paclet = PacletObject[File[$PacletDirectory]];
 		archives = platformArchives[paclet["Version"]];
 		VerifyPaclet[];
 		account = environmentSetting["WOLFRAM_CLOUD_USER"];
 		password = environmentSetting["WOLFRAM_CLOUD_PASSWORD"];
-		RequireOrLog[quietCheck[CloudConnect[account, password]], !FailureQ[#] &, "Could not connect to Wolfram Cloud"];
-		RequireOrLog[$CloudConnected, TrueQ, "Could not connect to Wolfram Cloud"];
+		connection = CloudConnect[account, password];
+		RequireOrLog[$CloudConnected, TrueQ, "Could not connect to Wolfram Cloud: ", connection];
 		result = pageCall[
 			"PublishPacletPage", $PacletDirectory, "GAPLink/Documentation",
 			"Account" -> account,
 			"Build" -> False,
 			"ResourceOptions" -> {"Build" -> False, "Parallel" -> False, "Commit" -> commit, "Exclude" -> $archiveExclusions},
+			"CheckOptions" -> {"Wait" -> $siteCheckWait},
 			"Monitor" -> True
 		];
 		RequireOrLog[result, AssociationQ, "PacletPage publication failed"];
 		RequireOrLog[result["Resource"]["Deployed"], TrueQ, "PacletPage resource was not published"];
-		RequireOrLog[result["Check"]["OK"], TrueQ, "Published documentation did not pass its checks"];
+		RequireOrLog[result["Check"]["OK"], TrueQ, siteCheckFailure[result["Check"]]];
 		resource = result["Resource"]["Resource"];
 		resources = Association @ KeyValueMap[#1 -> publishPlatform[#2, #1, paclet, commit] &, archives];
 		attachPlatforms[resource, resources, paclet["Version"], commit];

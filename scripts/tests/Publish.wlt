@@ -14,6 +14,7 @@ publishPlatform = GAPLink`Scripts`PackageScope`publishPlatform;
 platformDescription = GAPLink`Scripts`PackageScope`platformDescription;
 attachPlatforms = GAPLink`Scripts`PackageScope`attachPlatforms;
 releaseTag = GAPLink`Scripts`PackageScope`releaseTag;
+siteCheckFailure = GAPLink`Scripts`PackageScope`siteCheckFailure;
 
 sourcePaclet = PacletObject[File[$PacletDirectory]];
 uploadedObject = CloudObject["https://example.invalid/obj/test/paclet"];
@@ -38,7 +39,7 @@ recordVerify[___] := (
 recordStep[step_String] := Function[Null, Sow[step, "Publish"]]
 
 (* In place of logging an error and stopping the task, a failed requirement gives its message. *)
-throwMessage[parts___] := Throw[StringJoin[parts], "TaskFailure"]
+throwMessage[parts___] := Throw[StringJoin[Map[ToString, {parts}]], "TaskFailure"]
 
 (* Evaluates body with the cloud replaced by the stand-ins. A failed requirement gives its message as the result. *)
 SetAttributes[withPublishMocks, HoldAll];
@@ -405,6 +406,99 @@ publishedRelease[] :=
 		},
 		Reap[Reap[PublishPaclet[], "Publish"], "PageCall"]
 	]
+
+(* A CloudConnect that prints a message and connects, and one that fails. *)
+connectWithNotice::notice = "The cloud printed a notice.";
+connectWithNotice[___] := (
+	Message[connectWithNotice::notice];
+	Sow["Connect", "Publish"]
+)
+failToConnect[___] := $Failed
+
+(* The steps of a release in which CloudConnect does what connect does and leaves $CloudConnected as connectedQ, and
+   pacletPageCall stands in for the call of PacletPage, or the message of the requirement that failed. *)
+releaseSteps[connect_Symbol, connectedQ : (True | False), pacletPageCall : (_Symbol | _Function)] :=
+	Block[
+		{
+			CheckRelease = giveCommit,
+			GAPLink`Scripts`PackageScope`platformArchives = verifiedArchives,
+			VerifyPaclet = recordStep["Verify"],
+			GAPLink`Scripts`PackageScope`environmentSetting = Function[Null, "test"],
+			CloudConnect = connect,
+			$CloudConnected = connectedQ,
+			GAPLink`Scripts`PackageScope`failTask = throwMessage,
+			GAPLink`Scripts`PackageScope`pageCall = pacletPageCall,
+			GAPLink`Scripts`PackageScope`publishPlatform = recordPlatform,
+			GAPLink`Scripts`PackageScope`attachPlatforms = recordStep["Route"],
+			ResourceObject = recordResolve,
+			WriteGitHubOutput = Function[Null, Null],
+			LogInfo = Function[Null, Null]
+		},
+		Catch[First @ Last @ Reap[PublishPaclet[], "Publish"], "TaskFailure"]
+	]
+releaseSteps[connect_Symbol, connectedQ : (True | False)] := releaseSteps[connect, connectedQ, recordPageCall]
+
+VerificationTest[
+	releaseSteps[connectWithNotice, True],
+	{"Verify", "Connect", "PacletPage", "Platform", "Platform", "Platform", "Platform", "Route", "Resolve"},
+	{connectWithNotice::notice},
+	TestID -> "Publish-Goes-On-When-CloudConnect-Prints-A-Message-And-Connects"
+]
+
+VerificationTest[
+	releaseSteps[failToConnect, False],
+	"Could not connect to Wolfram Cloud: $Failed",
+	TestID -> "Publish-Stops-When-CloudConnect-Does-Not-Connect"
+]
+
+(* A CloudConnect that connects without a message. *)
+connectQuietly[___] := Sow["Connect", "Publish"]
+
+(* A stand-in for the call of PacletPage that records the call, as recordPageCall does, and gives result. *)
+pageCallGiving[result_Association] :=
+	Function[Null,
+		Sow[{##}, "PageCall"];
+		Sow["PacletPage", "Publish"];
+		result
+	]
+
+(* The steps of a release in which the check of the published site gives check, or the message of the requirement
+   that failed. *)
+releaseWithCheck[check_Association] := releaseSteps[connectQuietly, True, pageCallGiving[Append[pageResult, "Check" -> check]]]
+
+VerificationTest[
+	releaseWithCheck[
+		<|
+			"OK" -> False,
+			"Failed" -> {
+				<|"Check" -> "Page ref/GAPCall", "URL" -> "https://example.invalid/obj/ref/GAPCall.nb", "OK" -> False, "Detail" -> "HTTP 503"|>,
+				<|"Check" -> "Feedback Me", "URL" -> "https://example.invalid/obj/Feedback/Me", "OK" -> False, "Detail" -> "not readable anonymously"|>
+			}
+		|>
+	],
+	StringRiffle[
+		{
+			"Published documentation did not pass its checks:",
+			"Page ref/GAPCall: HTTP 503 (https://example.invalid/obj/ref/GAPCall.nb)",
+			"Feedback Me: not readable anonymously (https://example.invalid/obj/Feedback/Me)"
+		},
+		"\n"
+	],
+	TestID -> "Publish-Stops-And-Names-Each-Failed-Site-Check"
+]
+
+VerificationTest[
+	{siteCheckFailure[<|"OK" -> False|>], siteCheckFailure[None]},
+	ConstantArray["Published documentation did not pass its checks", 2],
+	TestID -> "Publish-Site-Check-Error-Reads-The-Same-Without-Details"
+]
+
+(* The cloud renders the pages of a new site some time after they are published. *)
+VerificationTest[
+	Replace[publishedRelease[], {_, {{{_String, _, _String, options___Rule}}}} :> Lookup[{options}, "CheckOptions"]],
+	{"Wait" -> 600},
+	TestID -> "Publish-Gives-A-Failed-Site-Check-Ten-Minutes"
+]
 
 VerificationTest[
 	Replace[

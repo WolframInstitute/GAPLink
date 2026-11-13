@@ -48,12 +48,11 @@ jobs:
             echo '::error title=Release commit::The release commit must be on main.'
             exit 1
           }
-          run=$(gh run list --workflow ci.yml --branch main --commit "$(git rev-parse HEAD)" \
-            --event push --status success --limit 1 --json databaseId --jq '.[0].databaseId')
-          if [ -z "$run" ]; then
+          # GitHub can list a CI run late, so the script looks for about five minutes.
+          run=$(scripts/find-ci-run.sh "$(git rev-parse HEAD)") || {
             echo "::error title=Missing CI run::No successful main CI run found for $GITHUB_SHA."
             exit 1
-          fi
+          }
           echo "version=$version" >> "$GITHUB_OUTPUT"
           echo "run=$run" >> "$GITHUB_OUTPUT"
 
