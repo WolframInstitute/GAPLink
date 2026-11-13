@@ -1,99 +1,228 @@
-scriptDirectory = DirectoryName[$InputFileName];
-repositoryRoot = ParentDirectory[scriptDirectory];
-pacletDirectory = FileNameJoin[{repositoryRoot, "GAPLink"}];
-buildDirectory = FileNameJoin[{repositoryRoot, "build"}];
-pacletName = "WolframInstitute/GAPLink";
-archivePrefix = StringReplace[pacletName, "/" -> "__"];
+(* ::Package:: *)
 
-scriptFail[parts___] := (Print["ERROR: ", parts]; Exit[1]);
+(* ::Section:: *)
+(*PackageExported*)
 
-scriptRequire[value_, test_, parts___] :=
-    If[TrueQ[test[value]], value, scriptFail[parts]];
-
-archivePath[version_String] := FileNameJoin[{
-    buildDirectory,
-    archivePrefix <> "-" <> version <> ".paclet"
+PackageExported[{
+	$RepositoryRoot, $ScriptsDirectory, $PacletName, $PacletDirectory, $BuildDirectory, $ArchivePrefix, $GitHubActionsQ, $ScriptCommand, $ScriptArguments,
+	LogInfo, LogWarning, LogError, RepositoryPath, ErrorCount, FinishScript, RunScript, LoadPaclet, WriteGitHubOutput
 }];
 
-loadSource[] := Module[{paclet, context, result},
-    paclet = Quiet @ Check[PacletObject[File[pacletDirectory]], $Failed];
-    scriptRequire[paclet, PacletObjectQ, "Cannot read ", pacletDirectory];
-    PacletDirectoryLoad[pacletDirectory];
-    context = paclet["PrimaryContext"];
-    result = Check[Needs[context], $Failed];
-    scriptRequire[result, # =!= $Failed &, "Cannot load ", context];
-    paclet
-];
+(* ::Section:: *)
+(*PackageScoped*)
 
-runTests[files_List] := Module[{reports, passed, failed, runtimeFailures},
-    If[files === {}, scriptFail["No test files found"]];
-    reports = Table[
-        With[{report = TestReport[file]},
-            scriptRequire[
-                report,
-                Head[#] === TestReportObject &,
-                "Could not run ", file
-            ];
-            Print[
-                "  ", FileNameTake[file], ": ",
-                report["TestsSucceededCount"], "/",
-                report["TestsSucceededCount"] + report["TestsFailedCount"]
-            ];
-            report
-        ],
-        {file, files}
-    ];
-    passed = Total[#["TestsSucceededCount"] & /@ reports];
-    failed = Total[#["TestsFailedCount"] & /@ reports];
-    runtimeFailures = Total[Length[#["RuntimeFailures"]] & /@ reports];
-    If[failed + runtimeFailures > 0,
-        Scan[
-            Function[report,
-                Scan[
-                    If[#["Outcome"] =!= "Success",
-                        Print[
-                            "FAIL: ", #["TestID"],
-                            "\n  Actual: ", #["ActualOutput"],
-                            "\n  Expected: ", #["ExpectedOutput"]
-                        ]
-                    ] &,
-                    Values[report["TestResults"]]
-                ]
-            ],
-            reports
-        ];
-        scriptFail[failed, " failed test(s), ", runtimeFailures, " runtime failure(s)"]
-    ];
-    Print["OK: ", passed, " tests passed"]
-];
+PackageScoped[{
+	RequireOrLog, RunTask, failTask, requireNoErrors, taskFailureQ, quietCheck, archivePath, environmentSetting, pythonScript, gapLinkFunction, $systems,
+	invalidArgumentsFailure
+}];
 
-lintFiles[files_List] := Module[{issueCount = 0, issues, errors},
-    Quiet[Needs["CodeInspector`"], {CodeInspector`Utils`format::shdw}];
-    Scan[
-        Function[file,
-            If[!FileExistsQ[file], scriptFail["File not found: ", file]];
-            issues = Quiet @ Check[CodeInspector`CodeInspect[File[file]], $Failed];
-            scriptRequire[issues, ListQ, "Could not inspect ", file];
-            errors = Cases[
-                issues,
-                CodeInspector`InspectionObject[_, _, "Fatal" | "Error", _]
-            ];
-            Scan[Print["ERROR: ", file, ": ", #] &, errors];
-            issueCount += Length[errors]
-        ],
-        files
-    ];
-    If[issueCount > 0, scriptFail[issueCount, " lint error(s)"]]
-];
+(* ::Section:: *)
+(*Usage Messages*)
 
-writeGitHubOutput[rules__Rule] := Module[{file, stream},
-    file = Environment["GITHUB_OUTPUT"];
-    If[!StringQ[file], Return[Null]];
-    stream = OpenAppend[file];
-    WriteString[
-        stream,
-        StringRiffle[(First[#] <> "=" <> ToString[Last[#]]) & /@ {rules}, "\n"],
-        "\n"
-    ];
-    Close[stream]
-];
+$RepositoryRoot::usage = "$RepositoryRoot is the repository directory.";
+$ScriptsDirectory::usage = "$ScriptsDirectory is the directory of the development scripts.";
+$PacletName::usage = "$PacletName is the full paclet name.";
+$PacletDirectory::usage = "$PacletDirectory is the paclet source directory.";
+$BuildDirectory::usage = "$BuildDirectory is the directory that holds build output.";
+$ArchivePrefix::usage = "$ArchivePrefix is the paclet name as it starts an archive file name.";
+$GitHubActionsQ::usage = "$GitHubActionsQ indicates whether GitHub Actions is running.";
+$ScriptCommand::usage = "$ScriptCommand is the project command named on the command line, or \"all\" when none is named.";
+$ScriptArguments::usage = "$ScriptArguments lists the command-line arguments after the project command.";
+LogInfo::usage = "LogInfo[parts] prints information. Each of the parts is a string or any expression, which prints in InputForm.";
+LogWarning::usage = "LogWarning[parts] prints a warning.\n\
+LogWarning[location, parts] prints a warning for the file and position that the association location names.";
+LogError::usage = "LogError[parts] prints an error and marks the script as failed.\n\
+LogError[location, parts] prints an error for the file and position that the association location names. location has the key \"File\" and may \
+have the keys \"Line\" and \"Column\". On GitHub Actions the error becomes an ::error file=...:: annotation.";
+RepositoryPath::usage = "RepositoryPath[file] gives a path relative to the repository.";
+ErrorCount::usage = "ErrorCount[] gives the number of logged errors.";
+FinishScript::usage = "FinishScript[] exits with a status determined by logged errors.";
+RunScript::usage = "RunScript[command] runs command[] and exits with its logged status. command is a symbol or a pure function.";
+LoadPaclet::usage = "LoadPaclet[] loads the paclet from source and gives the paclet object. It stops the current task when the paclet cannot be \
+read or loaded.";
+WriteGitHubOutput::usage = "WriteGitHubOutput[name -> value, ...] writes GitHub Actions step outputs.";
+RequireOrLog::usage = "RequireOrLog[value, test, parts] returns value when test[value] gives True. Otherwise it logs parts as an error and stops \
+the current task with a Failure. test is a function.";
+RunTask::usage = "RunTask[body] evaluates body until a required value fails, and gives its value, or the Failure that RequireOrLog threw.";
+failTask::usage = "failTask[parts] logs parts as an error and stops the current task with a Failure that has the tag \"ScriptTaskFailure\".";
+requireNoErrors::usage = "requireNoErrors[] stops the current task when an error has been logged, so that a command with several steps ends at \
+the first step that fails.";
+taskFailureQ::usage = "taskFailureQ[result] gives True when result is the Failure of a stopped task.";
+quietCheck::usage = "quietCheck[expression] evaluates expression without printing its messages and gives its value, or a Failure with the tag \
+\"MessageFailure\" when it issued a message.";
+gapLinkFunction::usage = "gapLinkFunction[name] gives the public GAPLink symbol of the given name. The scripts load the paclet while they run, so \
+they cannot name its symbols when they are read.";
+$systems::usage = "$systems lists the system IDs that a release has an archive for.";
+archivePath::usage = "archivePath[version] gives the path of the paclet archive of a version in the build directory.";
+environmentSetting::usage = "environmentSetting[name] gives the value of an environment variable, and stops the current task when it is not set.";
+pythonScript::usage = "pythonScript[name, arguments] runs the Python script of the given name in the scripts directory with a list of string \
+arguments, and gives the result of RunProcess.";
+invalidArgumentsFailure::usage = "invalidArgumentsFailure[function] issues the message function::args and gives the Failure that a script command \
+returns for arguments that match none of its definitions. The Failure has the tag \"InvalidArguments\".";
+normalizePath::usage = "normalizePath[path] gives the absolute path with the separators of this platform.";
+$errorCount::usage = "$errorCount is the number of errors logged so far.";
+toText::usage = "toText[expression] gives expression itself when it is a string, and its InputForm text otherwise.";
+joinText::usage = "joinText[parts] joins the text of the parts, as toText gives it.";
+locationQ::usage = "locationQ[expression] gives True when expression is an association with the key \"File\".";
+escapeData::usage = "escapeData[text] escapes the characters of a GitHub Actions message that the runner reads as markup.";
+escapeProperty::usage = "escapeProperty[text] escapes the characters of a GitHub Actions annotation property.";
+locationProperties::usage = "locationProperties[location] gives the properties file=..., line=... and col=... of an annotation, as one string.";
+locationText::usage = "locationText[location] gives the text file:line:column: that starts a local log line.";
+emit::usage = "emit[command, label, location, parts] prints a log line. On GitHub Actions it is the workflow command ::command::, and elsewhere a \
+line that starts with label. location is an association or None.";
+log::usage = "log[command, label, parts] prints a log line, with the location when the first of the parts is an association with a \"File\" key.";
+
+(* ::Section:: *)
+(*Function Definitions*)
+
+normalizePath[path_String] := FileNameJoin @ FileNameSplit @ ExpandFileName[path]
+
+$RepositoryRoot = normalizePath @ DirectoryName[ExpandFileName[$InputFileName], 2];
+$ScriptsDirectory = FileNameJoin[{$RepositoryRoot, "scripts"}];
+$PacletName = "WolframInstitute/GAPLink";
+$PacletDirectory = FileNameJoin[{$RepositoryRoot, "GAPLink"}];
+$BuildDirectory = FileNameJoin[{$RepositoryRoot, "build"}];
+$ArchivePrefix = StringReplace[$PacletName, "/" -> "__"];
+$GitHubActionsQ = Environment["GITHUB_ACTIONS"] === "true";
+$ScriptCommand = Replace[$ScriptCommandLine, {{_, command_String, ___} :> command, _ -> "all"}];
+$ScriptArguments = Replace[$ScriptCommandLine, {{_, _, rest___} :> {rest}, _ -> {}}];
+
+(* normalizePath joins with $PathnameSeparator, a backslash on Windows, so strip that separator and not a literal "/". *)
+RepositoryPath[file_String] := StringDelete[normalizePath[file], StartOfString ~~ $RepositoryRoot ~~ $PathnameSeparator]
+RepositoryPath[___] := invalidArgumentsFailure[RepositoryPath]
+
+$errorCount = 0;
+
+toText[text_String] := text
+toText[expression_] := ToString[expression, InputForm]
+joinText[parts___] := StringJoin[toText /@ {parts}]
+
+locationQ[candidate_Association] := KeyExistsQ[candidate, "File"]
+locationQ[___] := False
+
+escapeData[text_String] := StringReplace[text, {"%" -> "%25", "\r" -> "%0D", "\n" -> "%0A"}]
+escapeProperty[text_String] := StringReplace[text, {"%" -> "%25", "\r" -> "%0D", "\n" -> "%0A", ":" -> "%3A", "," -> "%2C"}]
+
+locationProperties[sourceLocation_Association] :=
+	StringRiffle[
+		DeleteMissing @ {
+			"file=" <> escapeProperty[RepositoryPath[sourceLocation["File"]]],
+			If[IntegerQ[sourceLocation["Line"]], "line=" <> ToString[sourceLocation["Line"]], Missing[]],
+			If[IntegerQ[sourceLocation["Column"]], "col=" <> ToString[sourceLocation["Column"]], Missing[]]
+		},
+		","
+	]
+
+locationText[sourceLocation_Association] :=
+	StringJoin[
+		RepositoryPath[sourceLocation["File"]],
+		If[IntegerQ[sourceLocation["Line"]], ":" <> ToString[sourceLocation["Line"]], ""],
+		If[IntegerQ[sourceLocation["Column"]], ":" <> ToString[sourceLocation["Column"]], ""],
+		": "
+	]
+
+emit[command_String, label_String, sourceLocation : (_Association | None), parts___] :=
+	Print @ If[$GitHubActionsQ,
+		StringJoin["::", command, If[locationQ[sourceLocation], " " <> locationProperties[sourceLocation], ""], "::", escapeData[joinText[parts]]],
+		StringJoin[label, ": ", If[locationQ[sourceLocation], locationText[sourceLocation], ""], joinText[parts]]
+	]
+
+log[command_String, label_String, sourceLocation_?locationQ, parts___] := emit[command, label, sourceLocation, parts]
+log[command_String, label_String, parts___] := emit[command, label, None, parts]
+
+(* Any expression is a valid part: it prints in InputForm. So a call never gives a Failure. *)
+(* allow MissingCatchAll: every sequence of parts is valid, so there is no invalid call to catch *)
+LogInfo[parts___] := Print[joinText[parts]]
+(* allow MissingCatchAll: every sequence of parts is valid, so there is no invalid call to catch *)
+LogWarning[parts___] := log["warning", "WARNING", parts]
+(* allow MissingCatchAll: every sequence of parts is valid, so there is no invalid call to catch *)
+LogError[parts___] := (
+	$errorCount++;
+	log["error", "ERROR", parts]
+)
+
+(* A task that cannot go on throws this Failure to RunTask, which gives it back as the value of the task. *)
+failTask[parts___] := (
+	If[{parts} =!= {}, LogError[parts]];
+	Throw[
+		Failure["ScriptTaskFailure", <|"MessageTemplate" -> "a required value failed its test: `1`", "MessageParameters" -> {joinText[parts]}|>],
+		"ScriptTaskFailure"
+	]
+)
+
+(* allow BarePattern: value is any expression, and test is any function that takes it *)
+RequireOrLog[value_, test_, parts___] := If[TrueQ[test[value]], value, failTask[parts]]
+
+SetAttributes[RunTask, HoldFirst];
+(* allow BarePattern: body is any expression, held until the catch is in place *)
+RunTask[body_] := Catch[body, "ScriptTaskFailure"]
+
+taskFailureQ[Failure["ScriptTaskFailure", _Association]] := True
+taskFailureQ[___] := False
+
+requireNoErrors[] := If[$errorCount > 0, failTask[]]
+
+(* Any message means that the step did not work, whichever function issued it, so every message is quieted and checked. *)
+SetAttributes[quietCheck, HoldFirst];
+(* allow BarePattern: expression is any expression, held until Quiet and Check are in place *)
+quietCheck[expression_] := Quiet[Check[expression, Failure["MessageFailure", <|"MessageTemplate" -> "The evaluation issued a message."|>]], All]
+
+$systems = {"Linux-x86-64", "MacOSX-ARM64", "MacOSX-x86-64", "Windows-x86-64"};
+
+gapLinkFunction[name_String] := Symbol["WolframInstitute`GAPLink`" <> name]
+
+ErrorCount[] := $errorCount
+ErrorCount[___] := invalidArgumentsFailure[ErrorCount]
+
+FinishScript[] :=
+	If[$errorCount > 0,
+		Print["\nFAILED: ", $errorCount, " error(s)."];
+		Exit[1],
+
+		Exit[0]
+	]
+FinishScript[___] := invalidArgumentsFailure[FinishScript]
+
+RunScript[command : (_Symbol | _Function)] := (
+	command[];
+	FinishScript[]
+)
+RunScript[___] := invalidArgumentsFailure[RunScript]
+
+archivePath[version_String] := FileNameJoin[{$BuildDirectory, $ArchivePrefix <> "-" <> version <> ".paclet"}]
+
+environmentSetting[name_String] := RequireOrLog[Environment[name], StringQ[#] && StringTrim[#] =!= "" &, name, " is not set"]
+
+pythonScript[name_String, arguments : {___String}] := RunProcess[Join[{"python3", FileNameJoin[{$ScriptsDirectory, name}]}, arguments]]
+
+LoadPaclet[] :=
+	Module[{paclet, context, loaded},
+		paclet = quietCheck[PacletObject[File[$PacletDirectory]]];
+		RequireOrLog[paclet, PacletObjectQ, "Cannot read ", $PacletDirectory];
+		PacletDirectoryLoad[$PacletDirectory];
+		context = paclet["PrimaryContext"];
+		loaded = Check[Needs[context], Failure["NeedsFailure", <|"MessageTemplate" -> "Needs generated messages."|>]];
+		RequireOrLog[loaded, !FailureQ[#] &, "Cannot load ", context];
+		paclet
+	]
+LoadPaclet[___] := invalidArgumentsFailure[LoadPaclet]
+
+WriteGitHubOutput[rules__Rule] :=
+	Module[{file, stream},
+		file = Environment["GITHUB_OUTPUT"];
+		If[StringQ[file],
+			stream = OpenAppend[file];
+			WithCleanup[
+				WriteString[stream, StringRiffle[MapApply[#1 <> "=" <> ToString[#2] &, {rules}], "\n"], "\n"],
+				Close[stream]
+			]
+		];
+		Null
+	]
+WriteGitHubOutput[___] := invalidArgumentsFailure[WriteGitHubOutput]
+
+(* The same catch-all as in the paclet: every exported command ends with Name[___] := invalidArgumentsFailure[Name]. *)
+invalidArgumentsFailure[function_Symbol] := (
+	Message[MessageName[function, "args"], function];
+	Failure["InvalidArguments", <|"MessageTemplate" -> MessageName[function, "args"], "MessageParameters" -> {function}|>]
+)

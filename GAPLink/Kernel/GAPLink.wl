@@ -1,7 +1,7 @@
 PackageInitialize["WolframInstitute`GAPLink`",
-    <|
-        "HiddenImports" -> {},
-        "LoadFirstFiles" -> {},
-        "LoadLastFiles" -> {}
-    |>
+	<|
+		"HiddenImports" -> {},
+		"LoadFirstFiles" -> {},
+		"LoadLastFiles" -> {}
+	|>
 ]

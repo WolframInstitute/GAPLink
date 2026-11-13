@@ -1,6 +1,10 @@
 # Keep repository text deterministic across development platforms.
 * text=auto eol=lf
 
+# The coding guides are kept as received, with their own whitespace.
+docs/coding-guides/WOLFRAM*.md -whitespace
+docs/coding-guides/MANIPULATEFUNCTIONCREATION.md -whitespace
+
 # Generated and native artifacts are binary.
 *.paclet binary
 *.mx binary

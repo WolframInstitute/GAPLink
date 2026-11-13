@@ -1,35 +1,38 @@
+PacletDirectoryLoad[DirectoryName[$TestFileName, 2]]
+Needs["WolframInstitute`GAPLink`"]
+
 VerificationTest[
-    PacletObjectQ[PacletObject["WolframInstitute/GAPLink"]],
-    True,
-    TestID -> "Paclet-Found"
+	PacletObjectQ[PacletObject["WolframInstitute/GAPLink"]],
+	True,
+	TestID -> "Paclet-Found"
 ]
 
 VerificationTest[
-    Needs["WolframInstitute`GAPLink`"],
-    Null,
-    TestID -> "Paclet-Loads-Without-Messages"
+	Needs["WolframInstitute`GAPLink`"],
+	Null,
+	TestID -> "Paclet-Loads-Without-Messages"
 ]
 
 VerificationTest[
-    MemberQ[$Packages, "WolframInstitute`GAPLink`"],
-    True,
-    TestID -> "Paclet-Context-Loaded"
+	MemberQ[$Packages, "WolframInstitute`GAPLink`"],
+	True,
+	TestID -> "Paclet-Context-Loaded"
 ]
 
 VerificationTest[
-    StringMatchQ[
-        PacletObject["WolframInstitute/GAPLink"]["Version"],
-        DigitCharacter.. ~~ "." ~~ DigitCharacter.. ~~ "." ~~ DigitCharacter..
-    ],
-    True,
-    TestID -> "Paclet-Version-Is-Semantic"
+	StringMatchQ[
+		PacletObject["WolframInstitute/GAPLink"]["Version"],
+		DigitCharacter.. ~~ "." ~~ DigitCharacter.. ~~ "." ~~ DigitCharacter..
+	],
+	True,
+	TestID -> "Paclet-Version-Is-Semantic"
 ]
 
 VerificationTest[
-    Names["WolframInstitute`GAPLink`*"],
-    {
-        "GAPCall", "GAPEvaluate", "GAPObject", "GAPPackageAvailableQ",
-        "GAPSession", "LoadGAPPackage", "StartGAPSession"
-    },
-    TestID -> "Export-Public-API"
+	Names["WolframInstitute`GAPLink`*"],
+	{
+		"GAPCall", "GAPEvaluate", "GAPObject", "GAPPackageAvailableQ",
+		"GAPSession", "LoadGAPPackage", "StartGAPSession"
+	},
+	TestID -> "Export-Public-API"
 ]

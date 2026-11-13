@@ -4,6 +4,20 @@ Notable changes are listed here.
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-11-13
+
+### Changed
+
+- License GAPLink under the GNU General Public License, version 2 or later, as GAP is.
+  Versions up to 0.3.3 stay under the MIT license.
+- Give `Failure["InvalidArguments", ...]` and the message `Name::args` for a call that
+  used to stay unevaluated, such as `GAPCall[]` or `StartGAPSession[1]`.
+  `GAPPackageAvailableQ[]` gives `False`. Calls that gave a `Failure` before give the
+  same one.
+- Follow the Wolfram Language coding guides in the kernel, the tests and the scripts, and
+  check them with `make style`.
+- Shorten the README to installation, a quick start and links.
+
 ## [0.3.3] - 2026-11-03
 
 ### Fixed
@@ -129,7 +143,8 @@ Notable changes are listed here.
 - Fixed the GAP startup handshake.
 - Removed repeated macOS warnings during startup.
 
-[Unreleased]: https://github.com/WolframInstitute/GAPLink/compare/v0.3.3...HEAD
+[Unreleased]: https://github.com/WolframInstitute/GAPLink/compare/v0.4.0...HEAD
+[0.4.0]: https://github.com/WolframInstitute/GAPLink/compare/v0.3.3...v0.4.0
 [0.3.3]: https://github.com/WolframInstitute/GAPLink/compare/v0.3.2...v0.3.3
 [0.3.2]: https://github.com/WolframInstitute/GAPLink/compare/v0.3.1...v0.3.2
 [0.3.1]: https://github.com/WolframInstitute/GAPLink/compare/v0.3.0...v0.3.1

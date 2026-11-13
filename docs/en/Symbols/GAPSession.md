@@ -23,6 +23,8 @@ RelatedGuides: [GAPLink]
 - `"Packages"` lists packages found at startup. `"LoadedPackages"` gives loaded
   package names and versions.
 - `DeleteObject[session]` closes GAP and invalidates its objects.
+- A name that is not a property gives `Missing["UnknownProperty", name]`. A request that is
+  not one name gives `Failure["InvalidArguments", ...]`.
 
 ## Basic Examples
 

@@ -66,4 +66,3 @@ raw GAP text remains a clear user action.
 
 - [Wolfram Language StartExternalSession](https://reference.wolfram.com/language/ref/StartExternalSession.html)
 - [Wolfram Language ExternalEvaluate](https://reference.wolfram.com/language/ref/ExternalEvaluate.html)
-- [LeanLink](https://resources.wolframcloud.com/PacletRepository/resources/Wolfram/LeanLink/)

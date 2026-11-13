@@ -164,6 +164,7 @@ try {
     $LicenseDirectory = Join-Path $Runtime "licenses"
     New-Item -ItemType Directory -Force $LicenseDirectory | Out-Null
     $Notice = @(
+        "GAPLink uses the GNU General Public License, version 2 or any later version, as GAP does."
         "GAP license: runtime/opt/gap-$Version/LICENSE"
         "Cygwin notices: runtime/usr/share/doc"
         "Cygwin package list: runtime/etc/setup/installed.db"

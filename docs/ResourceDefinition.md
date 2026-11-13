@@ -8,7 +8,7 @@ Description: Connect Wolfram Language to GAP for groups and algebra
 ContributedBy: Wolfram Institute
 Keywords: [GAP, groups, algebra, finite fields, representations]
 MainGuide: Documentation/English/Guides/GAPLink.nb
-License: MIT
+License: GPL-2.0-or-later
 WolframVersion: 15.0+
 Categories: [Mathematics]
 ---

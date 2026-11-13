@@ -16,6 +16,8 @@ RelatedGuides: [GAPLink]
 ## Details & Options
 
 - The package must already be available to GAP. This function does not install it.
+- *name* is a nonempty package name string. A blank name gives
+  `Failure["GAPUnsupportedValue", ...]`.
 - `"Version" -> Automatic` accepts any version. A version string is passed to GAP.
 - `TimeConstraint -> Infinity` allows any running time for loading.
 - Loading an already loaded package is safe. Dependencies appear in

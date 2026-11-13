@@ -6,8 +6,8 @@
 
 ## Why
 
-We need to decide what belongs in GAPLink. PureMath may use it, but GAPLink should also work
-on its own.
+We need to decide what belongs in GAPLink. Other projects may use it, but GAPLink should also
+work on its own.
 
 We could not review the old GAPLink project because its Stash page is unavailable.
 See [the legacy review](../legacy-gaplink.md).
@@ -16,8 +16,8 @@ See [the legacy review](../legacy-gaplink.md).
 
 - GAPLink connects Wolfram Language to GAP.
 - It finds GAP, starts and stops it, sends calls, and returns results or errors.
-- It does not depend on PureMath or another project.
-- PureMath and other projects can add their own higher-level math functions.
+- It does not depend on the projects that use it.
+- Those projects can add their own higher-level math functions.
 - Loading GAPLink does not find, start, or install GAP.
 - Public functions do not expose how GAP is run.
 - If we add a way to run GAP text, it must be a clear and direct user action.
@@ -27,7 +27,7 @@ or run GAP over a network.
 
 ## Other options
 
-- Build GAP support directly into PureMath.
+- Build GAP support directly into a project that needs it.
 - Build one project for GAP and several other math systems.
 
 ## Result
@@ -38,5 +38,5 @@ math functions on top of it.
 ## Checks
 
 - The paclet loads without GAP installed.
-- The repository does not depend on PureMath or another project.
+- The repository does not depend on a project that uses it.
 - Every public function belongs in GAPLink.

@@ -35,6 +35,9 @@ RelatedGuides: [GAPLink]
 - `TimeConstraint -> Infinity` allows any running time. A positive number limits
   the call in seconds. A timeout closes the session and invalidates its objects.
 - A GAP error returns `Failure`; a function with no return value returns `Null`.
+- A first argument that is not a `GAPSession` gives `Failure["GAPInvalidSession", ...]`. A
+  call with fewer than two arguments gives `Failure["InvalidArguments", ...]` and the
+  message `GAPCall::args`.
 
 ## Basic Examples
 

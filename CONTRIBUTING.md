@@ -33,6 +33,21 @@ make all
 GAPLINK_GAP=/path/to/gap make test-gap
 ```
 
+To run chosen test files:
+
+```bash
+make test FILES="GAPLink/Tests/Call.wlt"
+```
+
+To use a source checkout in a session, load it before `Needs`:
+
+```wl
+PacletDirectoryLoad["/path/to/GAPLink/GAPLink"];
+```
+
+The development scripts are one package under `scripts/`. `scripts/project.wls` runs one
+command, and `make help` lists the commands.
+
 To build and test a release paclet for the current system:
 
 ```bash
@@ -70,15 +85,21 @@ Runtime builds also need a C/C++ compiler, `curl`, and `tar`.
 The official Windows `gap.bat` layout is supported. Native Windows still needs the live
 session test before it is listed as verified.
 
-To lint selected Wolfram Language files:
-
-```bash
-make lint FILES="GAPLink/Kernel/GAPLink.wl"
-```
-
 ## Style
 
-- Use UTF-8, LF line endings, and four spaces for Wolfram Language files.
+Wolfram Language code follows the [coding guides](docs/coding-guides/README.md). That page
+says how GAPLink applies them, how the check works and how a rule is waived.
+
+```bash
+make style-fix FILES="GAPLink/Kernel/Call.wl"   # apply the mechanical fixes
+make style FILES="GAPLink/Kernel/Call.wl"       # check against the coding guides
+make lint FILES="GAPLink/Kernel/Call.wl"        # CodeInspector and the style check
+```
+
+Without `FILES`, `make style` checks every file. `make check`, the pre-commit hook and CI
+run the same check.
+
+- Use UTF-8, LF line endings, and tabs for Wolfram Language files.
 - Add a usage message, test, documentation, and changelog entry for each public symbol.
 - Give each test a clear `TestID`.
 
@@ -169,8 +190,8 @@ Before tagging a release:
 6. Push an annotated `v<version>` tag.
 
 ```bash
-git tag -a v0.3.3 -m "v0.3.3"
-git push origin v0.3.3
+git tag -a v0.4.0 -m "v0.4.0"
+git push origin v0.4.0
 ```
 
 The tag creates a GitHub release with the platform paclets, checksums, and GAP source
