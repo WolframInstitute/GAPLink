@@ -4,6 +4,8 @@ Notable changes are listed here.
 
 ## [Unreleased]
 
+## [0.4.2] - 2026-11-15
+
 ### Changed
 
 - Run CI only for pushes to `main` and pull requests into `main` that change a file CI
@@ -168,7 +170,8 @@ Notable changes are listed here.
 - Fixed the GAP startup handshake.
 - Removed repeated macOS warnings during startup.
 
-[Unreleased]: https://github.com/WolframInstitute/GAPLink/compare/v0.4.1...HEAD
+[Unreleased]: https://github.com/WolframInstitute/GAPLink/compare/v0.4.2...HEAD
+[0.4.2]: https://github.com/WolframInstitute/GAPLink/compare/v0.4.1...v0.4.2
 [0.4.1]: https://github.com/WolframInstitute/GAPLink/compare/v0.4.0...v0.4.1
 [0.4.0]: https://github.com/WolframInstitute/GAPLink/compare/v0.3.3...v0.4.0
 [0.3.3]: https://github.com/WolframInstitute/GAPLink/compare/v0.3.2...v0.3.3
