@@ -29,5 +29,6 @@ Records:
 - [0020: PacletPage publishing](0020-pacletpage-publishing.md)
 - [0021: Documentation site path](0021-documentation-site-path.md)
 - [0022: Release contents](0022-release-contents.md)
+- [0023: Windows user lookups](0023-windows-user-lookups.md)
 - [0024: Coding guides](0024-coding-guides.md)
 - [0025: License](0025-license.md)

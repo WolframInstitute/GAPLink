@@ -85,17 +85,36 @@ VerificationTest[
 	TestID -> "Reject-Ambiguous-Windows-GAP"
 ]
 
-(* Bash must not read startup files when it starts GAP on Windows. Any other GAP gets the environment as it is. *)
+(* Bash must not read startup files when it starts GAP on Windows, and the included GAP finds the home folder only in HOME. Any
+   other GAP gets the environment as it is. *)
 VerificationTest[
 	gapEnvironment["C:\\GAP\\gap.bat", <|"PATH" -> "C:\\Windows", "TERM" -> "xterm"|>],
-	<|"PATH" -> "C:\\Windows", "TERM" -> "", "BASH_ENV" -> "", "ENV" -> ""|>,
+	<|"HOME" -> $HomeDirectory, "PATH" -> "C:\\Windows", "TERM" -> "", "BASH_ENV" -> "", "ENV" -> ""|>,
 	TestID -> "Environment-For-Windows-Launcher"
+]
+
+VerificationTest[
+	gapEnvironment[windowsLauncher, <|"PATH" -> "C:\\Windows"|>, "C:\\Users\\Ada"],
+	<|"HOME" -> "C:\\Users\\Ada", "PATH" -> "C:\\Windows", "BASH_ENV" -> "", "ENV" -> "", "TERM" -> ""|>,
+	TestID -> "Pass-Home-To-Windows-GAP"
+]
+
+VerificationTest[
+	KeySelect[gapEnvironment[windowsLauncher, <|"Home" -> "D:\\Work"|>, "C:\\Users\\Ada"], ToUpperCase[#] === "HOME" &],
+	<|"Home" -> "D:\\Work"|>,
+	TestID -> "Keep-Home-Already-Set-For-Windows-GAP"
 ]
 
 VerificationTest[
 	gapEnvironment["/usr/bin/gap", <|"PATH" -> "/usr/bin", "TERM" -> "xterm"|>],
 	<|"PATH" -> "/usr/bin", "TERM" -> "xterm"|>,
 	TestID -> "Environment-For-Other-GAP"
+]
+
+VerificationTest[
+	gapEnvironment["/set/gap", <|"PATH" -> "/usr/bin"|>, "/home/ada"],
+	<|"PATH" -> "/usr/bin"|>,
+	TestID -> "Keep-Environment-For-Direct-GAP"
 ]
 
 VerificationTest[

@@ -134,12 +134,21 @@ class RuntimeArchiveTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "Test extension"):
             runtime_check.verify_release(self.archive)
 
-    def windows_archive(self, name):
+    windows_accounts = {
+        "nsswitch.conf": "# /etc/nsswitch.conf\npasswd: files\ngroup: files\n",
+        "passwd": "Unknown+User:*:4294967295:4294967295:U-Unknown\\User,S-1-99-0:/:/sbin/nologin\n",
+        "group": "Unknown+Group:S-1-99-0:4294967295:\n",
+    }
+
+    def windows_archive(self, name, accounts=None):
         with ZipFile(self.archive, "w") as archive:
             archive.writestr("GAPLink/PacletInfo.wl", '''PacletObject[<|
                 "Name" -> "WolframInstitute/GAPLink", "Version" -> "0.3.3",
                 "Qualifier" -> "Windows-x86-64", "SystemID" -> "Windows-x86-64"|>]''')
             archive.writestr("GAPLink/Resources/Runtime/" + name, b"runtime")
+            for file, contents in {**self.windows_accounts, **(accounts or {})}.items():
+                if contents is not None:
+                    archive.writestr("GAPLink/Resources/Runtime/runtime/etc/" + file, contents)
 
     def test_windows_path_limit_counts_installed_paclet_name(self):
         for name, valid in [("x" * 130, True), ("x" * 131, False), ("x" * 129 + "\U0001f600", False)]:
@@ -155,6 +164,24 @@ class RuntimeArchiveTests(unittest.TestCase):
         self.windows_archive("x" * 120 + "/file.txt")
         with self.assertRaisesRegex(ValueError, "Windows install directory is too long"):
             runtime_check.verify_release(self.archive)
+
+    def test_windows_runtime_reads_accounts_from_files(self):
+        self.windows_archive("gap.bat", {"nsswitch.conf": "passwd: files\ngroup: files # db\n"})
+        runtime_check.verify_release(self.archive)
+
+    def test_reject_windows_account_lookups(self):
+        for accounts in [
+                {"nsswitch.conf": None}, {"nsswitch.conf": "db_home: /%H\n"},
+                {"nsswitch.conf": "passwd: files db\ngroup: files\n"},
+                {"nsswitch.conf": "passwd: files\ngroup: db\n"},
+                {"nsswitch.conf": "# passwd: files\ngroup: files\n"},
+                {"passwd": None}, {"group": None},
+                {"passwd": "ada:*:1000:1000:,S-1-5-21-1-2-3-1000:/home/ada:/bin/bash\n"},
+                {"group": "Users:S-1-5-32-545:545:\n"}]:
+            with self.subTest(accounts=accounts):
+                self.windows_archive("gap.bat", accounts)
+                with self.assertRaisesRegex(ValueError, "local files only"):
+                    runtime_check.verify_release(self.archive)
 
 
 if __name__ == "__main__":

@@ -10,8 +10,10 @@ PackageScoped[{gapLinkGAPCommand, gapLinkGAPEnvironment, gapLinkRequest, gapLink
 
 gapLinkGAPCommand::usage = "gapLinkGAPCommand[executable] gives the command, a list of strings, that starts the GAP program at the path executable \
 with the GAPLink startup file, or a Failure. A Windows .bat launcher is replaced by the Bash and GAP programs of its installation.";
-gapLinkGAPEnvironment::usage = "gapLinkGAPEnvironment[executable, environment] gives the environment, an association of variables, in which the \
-GAP program at the path executable starts. For a Windows .bat launcher it clears the variables that would make Bash read startup files.";
+gapLinkGAPEnvironment::usage = "gapLinkGAPEnvironment[executable, environment, home] gives the environment, an association of variables, in \
+which the GAP program at the path executable starts. For a Windows .bat launcher it sets HOME to the folder home, unless environment has HOME in \
+any letter case or home is \"\", and clears the variables that would make Bash read startup files.\n\
+gapLinkGAPEnvironment[executable, environment] takes $HomeDirectory as home.";
 gapLinkRequest::usage = "gapLinkRequest[state, payload, timeConstraint] sends the association payload to the GAP process of the session state and \
 waits for the response, for at most timeConstraint seconds. It gives an association with the new \"State\", the \"Payload\" of the response and the \
 \"StandardOutput\" and \"StandardError\" that GAP wrote, or a Failure. A request that fails after it was sent stops the process.";
@@ -110,11 +112,18 @@ gapLinkGAPCommand[executable_String] :=
 		]
 	]
 
-gapLinkGAPEnvironment[executable_String, environment_Association] :=
+(* The included Windows GAP does not ask Windows who the user is, so it cannot find the home folder; see decision 0023. Pass the
+   folder, unless the user has already set one. Windows ignores the letter case of variable names. *)
+gapLinkGAPEnvironment[executable_String, environment_Association, home_String] :=
 	If[ToLowerCase @ FileExtension[executable] === "bat",
-		Join[environment, <|"BASH_ENV" -> "", "ENV" -> "", "TERM" -> ""|>],
+		Join[
+			If[home === "" || AnyTrue[Keys[environment], ToUpperCase[#] === "HOME" &], <||>, <|"HOME" -> home|>],
+			environment,
+			<|"BASH_ENV" -> "", "ENV" -> "", "TERM" -> ""|>
+		],
 		environment
 	]
+gapLinkGAPEnvironment[executable_String, environment_Association] := gapLinkGAPEnvironment[executable, environment, $HomeDirectory]
 
 gapProcessRunningQ[process_ProcessObject] := TrueQ[Quiet[Check[ProcessStatus[process] === "Running", False], All]]
 gapProcessRunningQ[___] := False

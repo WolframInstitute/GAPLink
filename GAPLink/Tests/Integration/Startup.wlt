@@ -56,6 +56,17 @@ VerificationTest[
 	TestID -> "Start-And-Close-GAP-Session"
 ]
 
+(* The included Windows GAP finds the home folder only in the HOME that GAPLink passes; see decision 0023. *)
+VerificationTest[
+	withSession[
+		Function[session,
+			failedChecks["Home folder" -> GAPEvaluate[session, "IsDirectoryPath(GAPInfo.UserHome);"] === True]
+		]
+	],
+	{},
+	TestID -> "GAP-Finds-Home-Folder"
+]
+
 VerificationTest[
 	withSession[
 		Function[session,

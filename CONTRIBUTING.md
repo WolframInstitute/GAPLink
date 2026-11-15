@@ -69,7 +69,8 @@ platform cloud uploader remain separate because they manage platform-specific
 binaries and the existing download URLs.
 
 Published paclets exclude GAPLink tests, runtime test suites, and caches. Archive
-checks enforce these exclusions and the Windows path budget, while checking every
+checks enforce these exclusions, the Windows path budget, and the Windows runtime's
+[user lookup settings](docs/decisions/0023-windows-user-lookups.md), while checking every
 retained runtime file against its source. Tests and matching upstream sources stay
 available separately; see [release contents](docs/decisions/0022-release-contents.md).
 
@@ -233,8 +234,8 @@ Before tagging a release:
 6. Push an annotated `v<version>` tag on that commit.
 
 ```bash
-git tag -a v0.4.1 -m "v0.4.1"
-git push origin v0.4.1
+git tag -a v0.4.2 -m "v0.4.2"
+git push origin v0.4.2
 ```
 
 The tag creates a GitHub release with the platform paclets, checksums, and GAP source
