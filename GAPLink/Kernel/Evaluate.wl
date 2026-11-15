@@ -1,63 +1,60 @@
 (* ::Package:: *)
 
-PackageExported[GAPEvaluate]
+(* ::Section:: *)
+(*PackageExported*)
 
-GAPEvaluate::usage = "GAPEvaluate[session, code] runs GAP code."
+PackageExported[GAPEvaluate];
+
+(* ::Section:: *)
+(*Usage Messages*)
+
+GAPEvaluate::usage = "GAPEvaluate[session, code] runs GAP code, a string, and gives the value of its last command.\n\
+The options are TimeConstraint -> Infinity, \"Output\" -> \"Print\" (or \"Capture\", \"Discard\") and \"ReturnType\" -> \"Automatic\" (or \
+\"Object\").";
+gapEvaluateResponse::usage = "gapEvaluateResponse[payload, errorOutput] gives the result or the Failure that the payload of the response to an \
+evaluation holds. errorOutput is what GAP wrote to standard error.";
+
+(* ::Section:: *)
+(*Function Definitions*)
 
 Options[GAPEvaluate] = {
-    TimeConstraint -> Infinity,
-    "Output" -> "Print",
-    "ReturnType" -> "Automatic"
+	TimeConstraint -> Infinity,
+	"Output" -> "Print",
+	"ReturnType" -> "Automatic"
 };
 
-gapEvaluateResponse[payload_, error_] := Module[{message, status},
-    If[!AssociationQ[payload], Return @ gapSessionFailure[
-        "GAPProtocolError", "GAP returned an invalid response."
-    ]];
-    status = Lookup[payload, "Status", Missing["Status"]];
-    If[status === "OK" && KeyExistsQ[payload, "Result"],
-        Return[payload["Result"]]
-    ];
-    message = Lookup[payload, "Message", "GAP could not run the code."];
-    Switch[status,
-        "GAPError", gapSessionFailure[
-            status, "GAP reported an error.",
-            <|"GAPMessage" -> gapLinkBytes[error]|>
-        ],
-        "GAPUnsupportedValue", gapSessionFailure[status, message],
-        _, gapSessionFailure[
-            "GAPProtocolError", "GAP returned an invalid response."
-        ]
-    ]
-]
+gapEvaluateResponse[payload_Association, errorOutput_ByteArray] :=
+	Module[{status, message},
+		status = Lookup[payload, "Status", None];
+		message = Replace[Lookup[payload, "Message", None], Except[_String] -> "GAP could not run the code."];
+		Which[
+			status === "OK" && KeyExistsQ[payload, "Result"],
+				payload["Result"],
+			status === "GAPError",
+				gapFailure[status, "GAP reported an error.", <|"GAPMessage" -> gapLinkBytes[errorOutput]|>],
+			status === "GAPUnsupportedValue",
+				gapFailure[status, message],
+			True,
+				gapInvalidResponse[]
+		]
+	]
+gapEvaluateResponse[_, _ByteArray] := gapInvalidResponse[]
 
-GAPEvaluate[
-    session_GAPSession, code_String, opts : OptionsPattern[]
-] := Module[
-    {options, output, payload, response, result, returnType, time},
-    options = gapLinkRequestOptions[GAPEvaluate, {opts}];
-    If[FailureQ[options], Return[options]];
-    {output, returnType, time} = options;
-    payload = <|
-        "Operation" -> "Evaluate",
-        "Code" -> code,
-        "ReturnType" -> returnType
-    |>;
-    result = gapLinkProtocolEncodeValue[payload];
-    If[FailureQ[result], Return[result]];
-    response = gapLinkRunSessionRequest[session, payload, time];
-    If[FailureQ[response], Return[response]];
-    result = gapEvaluateResponse[
-        response["Payload"], response["StandardError"]
-    ];
-    If[MatchQ[result, Failure["GAPProtocolError", _]],
-        gapLinkStopSession[session]
-    ];
-    If[!FailureQ[result], result = gapLinkImportObjects[session, result]];
-    gapLinkOutput[result, response, output]
-]
-
-GAPEvaluate[_GAPSession, ___] := gapSessionFailure[
-    "GAPUnsupportedValue", "The GAP code must be a string."
-]
-GAPEvaluate[_, ___] := gapInvalidSession[]
+(* The request is encoded once before the session is asked, so that code that cannot be sent leaves the session as it is. *)
+GAPEvaluate[session_GAPSession, code_String, opts : OptionsPattern[]] :=
+	Enclose[
+		Module[{output, returnType, timeConstraint, payload, response, result},
+			{output, returnType, timeConstraint} = ConfirmMatch[gapLinkRequestOptions[GAPEvaluate, {opts}], $notFailure];
+			payload = <|"Operation" -> "Evaluate", "Code" -> code, "ReturnType" -> returnType|>;
+			ConfirmMatch[gapLinkProtocolEncodeValue[payload], $notFailure];
+			response = ConfirmMatch[gapLinkRunSessionRequest[session, payload, timeConstraint], $notFailure];
+			result = gapEvaluateResponse[response["Payload"], response["StandardError"]];
+			gapLinkOutput[gapLinkFinishResult[session, result], response, output]
+		],
+		innerFailure
+	]
+(* These two forms gave a Failure without a message before every function had a catch-all, and projects that use
+   GAPLink rely on that: a session followed by anything but code and options, and a first argument that is not a session. *)
+GAPEvaluate[_GAPSession, ___] := gapFailure["GAPUnsupportedValue", "The GAP code must be a string."]
+GAPEvaluate[Except[_GAPSession], ___] := gapInvalidSession[]
+GAPEvaluate[___] := invalidArgumentsFailure[GAPEvaluate]

@@ -5,6 +5,7 @@ What changed and why?
 ## Tests
 
 - [ ] `make all`
+- [ ] Wolfram Language changes follow the [coding guides](../docs/coding-guides/README.md); `make style` reports nothing
 - [ ] Documentation updated if needed
 - [ ] `CHANGELOG.md` updated for user-visible changes
 

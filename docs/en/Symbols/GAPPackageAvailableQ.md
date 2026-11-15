@@ -16,6 +16,8 @@ RelatedGuides: [GAPLink]
 ## Details & Options
 
 - *name* is a nonempty package name string. The check does not load or install it.
+- The result is `True` or `False`, or a `Failure` when GAP cannot be asked, as for a closed
+  session or a blank name.
 - `"Version" -> Automatic` accepts any version. A version string is passed to GAP.
 - `TimeConstraint -> Infinity` allows any running time for the check.
 

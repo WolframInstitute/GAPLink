@@ -160,7 +160,9 @@ printf '%s\n' \
     "Required packages SHA-256: $packages_sha256" \
     > "$runtime/RUNTIME.txt"
 printf '%s\n' \
-    "GAP and its required packages are not part of GAPLink's MIT license." \
+    "GAPLink uses the GNU General Public License, version 2 or any later version, as GAP does." \
+    "The text of the license is gap/LICENSE in this directory." \
+    "GAP, GMP and the GAP packages keep their own copyright and license." \
     "GAP and GMP license files are in this directory." \
     "Package license files are under ../pkg/." \
     "The release includes the matching source archives." \

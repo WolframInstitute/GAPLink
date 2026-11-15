@@ -21,6 +21,8 @@ RelatedGuides: [GAPLink]
 - `"Output" -> "Print"`, `"ReturnType" -> "Automatic"`, and
   `TimeConstraint -> Infinity` have the same meanings as for `GAPCall`.
 - Unsupported results remain in GAP as `GAPObject` values. Errors return `Failure`.
+- A first argument that is not a `GAPSession` gives `Failure["GAPInvalidSession", ...]`, and
+  code that is not a string gives `Failure["GAPUnsupportedValue", ...]`.
 
 ## Basic Examples
 

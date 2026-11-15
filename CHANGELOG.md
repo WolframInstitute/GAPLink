@@ -4,11 +4,44 @@ Notable changes are listed here.
 
 ## [Unreleased]
 
+### Changed
+
+- Run CI only for pushes to `main` and pull requests into `main` that change a file CI
+  reads: a change only to `CHANGELOG.md` or a decision record, for example, starts no
+  run. CI keeps its build artifacts for seven days and stops the paclet job after an
+  hour.
+
 ### Fixed
 
 - Start the included GAP on Windows without waiting for Windows user lookups, which could
   stall or time out.
 - Keep `~` in GAP pointing at the user's home folder on Windows.
+
+## [0.4.1] - 2026-11-13
+
+### Fixed
+
+- Let a release find its CI run when GitHub lists the run late: the release looks for it
+  every 30 seconds for up to five minutes.
+- Give a failed check of the published site ten minutes to pass, as the cloud renders new
+  pages late, and name each check that still fails, with its reason and URL.
+- Publish when `CloudConnect` prints a message and still connects, and show the message.
+
+## [0.4.0] - 2026-11-13
+
+### Changed
+
+- License GAPLink under the GNU General Public License, version 2 or later, as GAP is.
+  Versions up to 0.3.3 stay under the MIT license.
+- Give `Failure["InvalidArguments", ...]` and the message `Name::args` for a call that
+  used to stay unevaluated, such as `GAPCall[]` or `StartGAPSession[1]`.
+  `GAPPackageAvailableQ[]` gives `False`. Calls that gave a `Failure` before give the
+  same one.
+- Follow the Wolfram Language coding guides in the kernel, the tests and the scripts, and
+  check them with `make style`.
+- Shorten the README to installation, a quick start and links.
+- Let CI and publishing take the Wolfram license from a license line in the
+  `WOLFRAM_MATHPASS_B64` secret. Without it they use the entitlement as before.
 
 ## [0.3.3] - 2026-11-03
 
@@ -135,7 +168,9 @@ Notable changes are listed here.
 - Fixed the GAP startup handshake.
 - Removed repeated macOS warnings during startup.
 
-[Unreleased]: https://github.com/WolframInstitute/GAPLink/compare/v0.3.3...HEAD
+[Unreleased]: https://github.com/WolframInstitute/GAPLink/compare/v0.4.1...HEAD
+[0.4.1]: https://github.com/WolframInstitute/GAPLink/compare/v0.4.0...v0.4.1
+[0.4.0]: https://github.com/WolframInstitute/GAPLink/compare/v0.3.3...v0.4.0
 [0.3.3]: https://github.com/WolframInstitute/GAPLink/compare/v0.3.2...v0.3.3
 [0.3.2]: https://github.com/WolframInstitute/GAPLink/compare/v0.3.1...v0.3.2
 [0.3.1]: https://github.com/WolframInstitute/GAPLink/compare/v0.3.0...v0.3.1

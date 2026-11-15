@@ -20,6 +20,8 @@ RelatedGuides: [GAPLink]
   installation locations. Set it to a path to select another GAP installation.
 - `TimeConstraint -> 30` limits startup in seconds.
 - Startup problems return `Failure`. Nothing is downloaded or installed.
+- Arguments that are not options give `Failure["InvalidArguments", ...]` and the message
+  `StartGAPSession::args`.
 - Close a session with `DeleteObject[session]` when finished.
 
 ## Basic Examples
